@@ -15,6 +15,8 @@ const app = express();
 
 // Middleware
 app.use(cors());
+    origin: true, // разрешить все домены
+    credentials: true
 app.use(express.json());
 
 // Проверка подключения к базе данных
