@@ -65,7 +65,7 @@ const Admin = () => {
 
   const apiCall = async (url, options = {}) => {
     const token = localStorage.getItem('token');
-    const res = await fetch(`http://localhost:5000/api/admin${url}`, {
+    const res = await fetch(`https://car-detailing-app-14qu.onrender.com/api/admin${url}`, {
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`,
