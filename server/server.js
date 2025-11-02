@@ -18,7 +18,7 @@ app.use(cors({
   origin: [
     'http://localhost:3000',
     'http://localhost:5173', 
-    'https://car-detailing-app.netlify.app'
+    'https://car-detailing-app-three.vercel.app'
   ],
   credentials: true
 }));
