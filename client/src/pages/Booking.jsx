@@ -21,7 +21,7 @@ const Booking = () => {
   const fetchService = async () => {
     try {
       console.log('🔄 Loading service with ID:', serviceId);
-      const response = await fetch('http://localhost:5000/api/services');
+      const response = await fetch('https://car-detailing-app-14qu.onrender.com/api/services');
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
