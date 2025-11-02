@@ -38,7 +38,7 @@ const Executor = () => {
       const user = JSON.parse(localStorage.getItem('user'));
       
       // Получаем записи, назначенные этому исполнителю
-      const response = await fetch(`http://localhost:5000/api/appointments/executor/${user.id}`, {
+      const response = await fetch(`https://car-detailing-app-14qu.onrender.com/api/appointments/executor/${user.id}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -59,7 +59,7 @@ const Executor = () => {
   const fetchMaterials = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5000/api/materials', {
+      const response = await fetch('https://car-detailing-app-14qu.onrender.com/api/materials', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -92,7 +92,7 @@ const Executor = () => {
   const updateAppointmentStatus = async (appointmentId, newStatus) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5000/api/appointments/${appointmentId}/status`, {
+      const response = await fetch(`https://car-detailing-app-14qu.onrender.com/api/appointments/${appointmentId}/status`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -116,7 +116,7 @@ const Executor = () => {
   const updateMaterialQuantity = async (materialId, newQuantity) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5000/api/materials/${materialId}`, {
+      const response = await fetch(`https://car-detailing-app-14qu.onrender.com/api/materials/${materialId}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
