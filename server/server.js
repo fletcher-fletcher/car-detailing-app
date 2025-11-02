@@ -13,7 +13,7 @@ dotenv.config();
 
 const app = express();
 
-// Middleware - ИСПРАВЛЕННЫЙ CORS
+// Middleware - ПРАВИЛЬНЫЙ CORS
 app.use(cors({
   origin: [
     'http://localhost:3000',
