@@ -18,7 +18,7 @@ const Profile = () => {
 
   const fetchAppointments = async (userId) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/appointments/user/${userId}`);
+      const response = await fetch(`https://car-detailing-app-14qu.onrender.com/api/appointments/user/${userId}`);
       if (response.ok) {
         const data = await response.json();
         setAppointments(data);
@@ -36,7 +36,7 @@ const Profile = () => {
     }
 
     try {
-      const response = await fetch(`http://localhost:5000/api/appointments/${appointmentId}/cancel`, {
+      const response = await fetch(`https://car-detailing-app-14qu.onrender.com/api/appointments/${appointmentId}/cancel`, {
         method: 'PATCH',
       });
 
