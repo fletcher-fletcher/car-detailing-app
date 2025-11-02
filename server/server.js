@@ -4,19 +4,25 @@ import dotenv from 'dotenv';
 import authRoutes from './routes/auth.js';
 import servicesRoutes from './routes/services.js';
 import appointmentsRoutes from './routes/appointments.js';
-import adminRoutes from './routes/adminRoutes.js'; // изменено
+import adminRoutes from './routes/adminRoutes.js';
 import authenticateToken from './middleware/auth.js';
-import requireAdmin from './middleware/requireAdmin.js'; // изменено
+import requireAdmin from './middleware/requireAdmin.js';
 import executorRoutes from './routes/executorroutes.js';
 
 dotenv.config();
 
 const app = express();
 
-// Middleware
-app.use(cors());
-    origin: true, // разрешить все домены
-    credentials: true
+// Middleware - ИСПРАВЛЕННЫЙ CORS
+app.use(cors({
+  origin: [
+    'http://localhost:3000',
+    'http://localhost:5173', 
+    'https://car-detailing-app.netlify.app'
+  ],
+  credentials: true
+}));
+
 app.use(express.json());
 
 // Проверка подключения к базе данных
@@ -37,6 +43,6 @@ app.get('/api/test', (req, res) => {
 });
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });
