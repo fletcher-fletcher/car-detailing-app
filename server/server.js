@@ -7,7 +7,7 @@ import appointmentsRoutes from './routes/appointments.js';
 import adminRoutes from './routes/adminRoutes.js';
 import authenticateToken from './middleware/auth.js';
 import requireAdmin from './middleware/requireAdmin.js';
-import executorRoutes from './routes/executorroutes.js';
+import executorRoutes from './routes/executorRoutes.js';
 
 dotenv.config();
 
