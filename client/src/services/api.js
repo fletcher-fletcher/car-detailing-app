@@ -6,7 +6,7 @@ console.log('🔗 All env vars:', import.meta.env);
 export const authAPI = {
   // Регистрация
   register: async (userData) => {
-    const response = await fetch(`${API_URL}/auth/register`, {
+    const response = await fetch(`${API_URL}/api/auth/register`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -18,7 +18,7 @@ export const authAPI = {
 
   // Логин
   login: async (credentials) => {
-    const response = await fetch(`${API_URL}/auth/login`, {
+    const response = await fetch(`${API_URL}/api/auth/login`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
