@@ -21,7 +21,7 @@ const Header = () => {
       <div className="container">
         <div className="nav">
           <Link to="/" className="nav-link logo">
-            🚗 Детейлинг Центр
+            🚗 Студия детейлинга
           </Link>
           <nav className="nav-links">
             {/* Основная навигация - всегда видна */}
