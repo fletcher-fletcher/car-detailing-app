@@ -1260,4 +1260,174 @@ router.post('/materials/:id/restock', async (req, res) => {
   }
 });
 
+// ==================== УПРАВЛЕНИЕ МАТЕРИАЛАМИ ====================
+
+// Получить все материалы с фильтрацией
+router.get('/materials', async (req, res) => {
+  try {
+    const { search, low_stock_only, limit = 100, offset = 0 } = req.query;
+
+    let whereClause = 'WHERE 1=1';
+    let params = [];
+    let paramIndex = 1;
+
+    if (search) {
+      whereClause += ` AND (name ILIKE $${paramIndex} OR description ILIKE $${paramIndex})`;
+      params.push(`%${search}%`);
+      paramIndex++;
+    }
+
+    if (low_stock_only === 'true') {
+      whereClause += ` AND quantity_in_stock <= min_stock_level`;
+    }
+
+    const result = await pool.query(
+      `SELECT *, 
+              CASE 
+                WHEN quantity_in_stock <= min_stock_level THEN 'low'
+                WHEN quantity_in_stock <= min_stock_level * 1.5 THEN 'warning'
+                ELSE 'ok'
+              END as stock_status
+       FROM materials
+       ${whereClause}
+       ORDER BY name
+       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`,
+      [...params, limit, offset]
+    );
+
+    const countResult = await pool.query(
+      `SELECT COUNT(*) as total FROM materials ${whereClause}`,
+      params
+    );
+
+    res.json({
+      materials: result.rows,
+      pagination: {
+        total: parseInt(countResult.rows[0].total),
+        limit: parseInt(limit),
+        offset: parseInt(offset)
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching materials:', error);
+    res.status(500).json({ message: 'Ошибка сервера' });
+  }
+});
+
+// Создать новый материал
+router.post('/materials', async (req, res) => {
+  try {
+    const { name, description, unit, quantity_in_stock, min_stock_level, price_per_unit, supplier } = req.body;
+
+    if (!name || !unit) {
+      return res.status(400).json({ message: 'Название и единица измерения обязательны' });
+    }
+
+    const result = await pool.query(
+      `INSERT INTO materials (name, description, unit, quantity_in_stock, min_stock_level, price_per_unit, supplier)
+       VALUES ($1, $2, $3, $4, $5, $6, $7) 
+       RETURNING *`,
+      [name, description, unit, quantity_in_stock || 0, min_stock_level || 0, price_per_unit || 0, supplier]
+    );
+
+    res.status(201).json({ message: 'Материал создан', material: result.rows[0] });
+  } catch (error) {
+    console.error('Error creating material:', error);
+    res.status(500).json({ message: 'Ошибка сервера' });
+  }
+});
+
+// Редактировать материал
+router.put('/materials/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, description, unit, quantity_in_stock, min_stock_level, price_per_unit, supplier, is_active } = req.body;
+
+    const result = await pool.query(
+      `UPDATE materials 
+       SET name = COALESCE($1, name),
+           description = COALESCE($2, description),
+           unit = COALESCE($3, unit),
+           quantity_in_stock = COALESCE($4, quantity_in_stock),
+           min_stock_level = COALESCE($5, min_stock_level),
+           price_per_unit = COALESCE($6, price_per_unit),
+           supplier = COALESCE($7, supplier),
+           is_active = COALESCE($8, is_active),
+           updated_at = NOW()
+       WHERE id = $9 
+       RETURNING *`,
+      [name, description, unit, quantity_in_stock, min_stock_level, price_per_unit, supplier, is_active, id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: 'Материал не найден' });
+    }
+
+    res.json({ message: 'Материал обновлен', material: result.rows[0] });
+  } catch (error) {
+    console.error('Error updating material:', error);
+    res.status(500).json({ message: 'Ошибка сервера' });
+  }
+});
+
+// Удалить материал
+router.delete('/materials/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Проверяем, используется ли материал в активных заказах
+    const usageCheck = await pool.query(
+      `SELECT COUNT(*) as count FROM material_usage mu
+       JOIN appointments a ON mu.appointment_id = a.id
+       WHERE mu.material_id = $1 AND a.status NOT IN ('completed', 'cancelled')`,
+      [id]
+    );
+
+    if (parseInt(usageCheck.rows[0].count) > 0) {
+      return res.status(400).json({ message: 'Нельзя удалить материал, который используется в активных заказах' });
+    }
+
+    await pool.query('DELETE FROM materials WHERE id = $1', [id]);
+    res.json({ message: 'Материал удален' });
+  } catch (error) {
+    console.error('Error deleting material:', error);
+    res.status(500).json({ message: 'Ошибка сервера' });
+  }
+});
+
+// Пополнить склад материала
+router.post('/materials/:id/restock', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { quantity, cost_per_unit, supplier_info } = req.body;
+
+    if (!quantity || quantity <= 0) {
+      return res.status(400).json({ message: 'Количество должно быть больше 0' });
+    }
+
+    const result = await pool.query(
+      `UPDATE materials 
+       SET quantity_in_stock = quantity_in_stock + $1,
+           price_per_unit = COALESCE($2, price_per_unit),
+           supplier = COALESCE($3, supplier),
+           updated_at = NOW()
+       WHERE id = $4 
+       RETURNING *`,
+      [quantity, cost_per_unit, supplier_info, id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: 'Материал не найден' });
+    }
+
+    res.json({ 
+      message: `Склад пополнен на ${quantity} единиц`, 
+      material: result.rows[0] 
+    });
+  } catch (error) {
+    console.error('Error restocking material:', error);
+    res.status(500).json({ message: 'Ошибка сервера' });
+  }
+});
+
 export default router;
