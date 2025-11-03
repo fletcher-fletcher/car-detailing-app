@@ -206,6 +206,182 @@ export const appointmentsAPI = {
         'Authorization': `Bearer ${token}`
       }
     });
+
+    // ==================== API ФУНКЦИИ ДЛЯ АДМИНА ====================
+
+export const adminAPI = {
+  // ==================== УПРАВЛЕНИЕ ПОЛЬЗОВАТЕЛЯМИ ====================
+  
+  // Получить всех пользователей с фильтрацией
+  getUsers: async (filters = {}) => {
+    const token = localStorage.getItem('token');
+    const queryParams = new URLSearchParams(filters).toString();
+    const response = await fetch(`${API_URL}/api/admin/users?${queryParams}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    if (!response.ok) throw new Error('Failed to fetch users');
+    return response.json();
+  },
+
+  // Редактировать пользователя
+  updateUser: async (userId, updateData) => {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/api/admin/users/${userId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(updateData)
+    });
+    if (!response.ok) throw new Error('Failed to update user');
+    return response.json();
+  },
+
+  // Удалить пользователя
+  deleteUser: async (userId) => {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/api/admin/users/${userId}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    if (!response.ok) throw new Error('Failed to delete user');
+    return response.json();
+  },
+
+  // ==================== УПРАВЛЕНИЕ ЗАКАЗАМИ ====================
+  
+  // Получить все заказы с фильтрацией
+  getAppointments: async (filters = {}) => {
+    const token = localStorage.getItem('token');
+    const queryParams = new URLSearchParams(filters).toString();
+    const response = await fetch(`${API_URL}/api/admin/appointments?${queryParams}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    if (!response.ok) throw new Error('Failed to fetch appointments');
+    return response.json();
+  },
+
+  // Редактировать заказ
+  updateAppointment: async (appointmentId, updateData) => {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/api/admin/appointments/${appointmentId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(updateData)
+    });
+    if (!response.ok) throw new Error('Failed to update appointment');
+    return response.json();
+  },
+
+  // Удалить заказ
+  deleteAppointment: async (appointmentId) => {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/api/admin/appointments/${appointmentId}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    if (!response.ok) throw new Error('Failed to delete appointment');
+    return response.json();
+  },
+
+  // ==================== УПРАВЛЕНИЕ МАТЕРИАЛАМИ ====================
+  
+  // Получить все материалы
+  getMaterials: async (filters = {}) => {
+    const token = localStorage.getItem('token');
+    const queryParams = new URLSearchParams(filters).toString();
+    const response = await fetch(`${API_URL}/api/admin/materials?${queryParams}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    if (!response.ok) throw new Error('Failed to fetch materials');
+    return response.json();
+  },
+
+  // Создать материал
+  createMaterial: async (materialData) => {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/api/admin/materials`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(materialData)
+    });
+    if (!response.ok) throw new Error('Failed to create material');
+    return response.json();
+  },
+
+  // Редактировать материал
+  updateMaterial: async (materialId, updateData) => {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/api/admin/materials/${materialId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(updateData)
+    });
+    if (!response.ok) throw new Error('Failed to update material');
+    return response.json();
+  },
+
+  // Удалить материал
+  deleteMaterial: async (materialId) => {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/api/admin/materials/${materialId}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    if (!response.ok) throw new Error('Failed to delete material');
+    return response.json();
+  },
+
+  // Пополнить склад материала
+  restockMaterial: async (materialId, restockData) => {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/api/admin/materials/${materialId}/restock`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(restockData)
+    });
+    if (!response.ok) throw new Error('Failed to restock material');
+    return response.json();
+  },
+
+  // Получить отчеты по материалам
+  getMaterialsReport: async (filters = {}) => {
+    const token = localStorage.getItem('token');
+    const queryParams = new URLSearchParams(filters).toString();
+    const response = await fetch(`${API_URL}/api/admin/reports/materials?${queryParams}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    if (!response.ok) throw new Error('Failed to fetch materials report');
+    return response.json();
+  }
+};
     if (!response.ok) throw new Error('Failed to fetch materials report');
     return response.json();
   }
