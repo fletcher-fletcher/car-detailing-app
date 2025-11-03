@@ -27,35 +27,6 @@ export const authAPI = {
     });
     return response.json();
   },
-// client/src/services/api.js
-const API_URL = 'https://car-detailing-app-14qu.onrender.com';
-console.log('🔗 API URL:', API_URL);
-console.log('🔗 All env vars:', import.meta.env);
-
-export const authAPI = {
-  // Регистрация
-  register: async (userData) => {
-    const response = await fetch(`${API_URL}/api/auth/register`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(userData),
-    });
-    return response.json();
-  },
-
-  // Логин
-  login: async (credentials) => {
-    const response = await fetch(`${API_URL}/api/auth/login`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(credentials),
-    });
-    return response.json();
-  },
 };
 
 // ==================== НОВЫЕ API ФУНКЦИИ ====================
@@ -165,4 +136,48 @@ export const executorAPI = {
     return response.json();
   }
 };
+
+// ==================== API ФУНКЦИИ ДЛЯ СЕРВИСОВ ====================
+
+export const servicesAPI = {
+  getAll: async () => {
+    const response = await fetch(`${API_URL}/api/services`);
+    if (!response.ok) throw new Error('Failed to fetch services');
+    return response.json();
+  },
+
+  getById: async (id) => {
+    const response = await fetch(`${API_URL}/api/services/${id}`);
+    if (!response.ok) throw new Error('Failed to fetch service');
+    return response.json();
+  }
+};
+
+// ==================== API ФУНКЦИИ ДЛЯ ЗАПИСЕЙ ====================
+
+export const appointmentsAPI = {
+  create: async (appointmentData) => {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/api/appointments`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(appointmentData)
+    });
+    if (!response.ok) throw new Error('Failed to create appointment');
+    return response.json();
+  },
+
+  getUserAppointments: async () => {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/api/appointments/user`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    if (!response.ok) throw new Error('Failed to fetch user appointments');
+    return response.json();
+  }
 };
