@@ -181,3 +181,32 @@ export const appointmentsAPI = {
     return response.json();
   }
 };
+
+  // Пополнить склад материала
+  restockMaterial: async (materialId, restockData) => {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/api/admin/materials/${materialId}/restock`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(restockData)
+    });
+    if (!response.ok) throw new Error('Failed to restock material');
+    return response.json();
+  },
+
+  // Получить отчеты по материалам
+  getMaterialsReport: async (filters = {}) => {
+    const token = localStorage.getItem('token');
+    const queryParams = new URLSearchParams(filters).toString();
+    const response = await fetch(`${API_URL}/api/admin/reports/materials?${queryParams}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    if (!response.ok) throw new Error('Failed to fetch materials report');
+    return response.json();
+  }
+};
