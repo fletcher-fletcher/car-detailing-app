@@ -116,6 +116,125 @@ const [materialFilters, setMaterialFilters] = useState({
     setLoading(false);
   };
 
+  // Добавьте эти функции в компонент Admin:
+
+// ==================== МАТЕРИАЛЫ ====================
+
+const fetchMaterials = async () => {
+  try {
+    const data = await adminAPI.getMaterials(materialFilters);
+    setMaterials(data.materials || data || []);
+  } catch (error) {
+    console.error('Error fetching materials:', error);
+    alert('Ошибка загрузки материалов');
+  }
+};
+
+const handleEditMaterial = (material) => {
+  setSelectedMaterial(material);
+  setMaterialForm({
+    name: material.name || '',
+    description: material.description || '',
+    unit: material.unit || '',
+    quantity_in_stock: material.quantity_in_stock || 0,
+    min_stock_level: material.min_stock_level || 0,
+    price_per_unit: material.price_per_unit || 0,
+    supplier: material.supplier || '',
+    is_active: material.is_active !== undefined ? material.is_active : true
+  });
+  setShowMaterialModal(true);
+};
+
+const handleCreateMaterial = () => {
+  setSelectedMaterial(null);
+  setMaterialForm({
+    name: '',
+    description: '',
+    unit: '',
+    quantity_in_stock: 0,
+    min_stock_level: 0,
+    price_per_unit: 0,
+    supplier: '',
+    is_active: true
+  });
+  setShowMaterialModal(true);
+};
+
+const submitMaterialForm = async () => {
+  try {
+    if (selectedMaterial) {
+      await adminAPI.updateMaterial(selectedMaterial.id, materialForm);
+      alert('Материал обновлен');
+    } else {
+      await adminAPI.createMaterial(materialForm);
+      alert('Материал создан');
+    }
+    setShowMaterialModal(false);
+    fetchMaterials();
+  } catch (error) {
+    console.error('Error saving material:', error);
+    alert('Ошибка сохранения материала: ' + error.message);
+  }
+};
+
+const deleteMaterial = async (materialId) => {
+  if (!window.confirm('Вы уверены, что хотите удалить этот материал?')) return;
+  
+  try {
+    await adminAPI.deleteMaterial(materialId);
+    alert('Материал удален');
+    fetchMaterials();
+  } catch (error) {
+    console.error('Error deleting material:', error);
+    alert('Ошибка удаления материала: ' + error.message);
+  }
+};
+
+const handleRestockMaterial = (material) => {
+  setSelectedMaterial(material);
+  setRestockForm({
+    quantity: 0,
+    cost_per_unit: material.price_per_unit || 0,
+    supplier_info: material.supplier || '',
+    notes: ''
+  });
+  setShowRestockModal(true);
+};
+
+const submitRestockForm = async () => {
+  try {
+    if (restockForm.quantity <= 0) {
+      alert('Количество должно быть больше 0');
+      return;
+    }
+
+    await adminAPI.restockMaterial(selectedMaterial.id, {
+      quantity: restockForm.quantity,
+      cost_per_unit: restockForm.cost_per_unit,
+      supplier_info: restockForm.supplier_info
+    });
+    
+    alert(`Склад пополнен на ${restockForm.quantity} ${selectedMaterial.unit}`);
+    setShowRestockModal(false);
+    fetchMaterials();
+  } catch (error) {
+    console.error('Error restocking material:', error);
+    alert('Ошибка пополнения склада: ' + error.message);
+  }
+};
+
+const getStockStatusColor = (material) => {
+  if (material.quantity_in_stock <= material.min_stock_level) return '#EF4444'; // Красный - критично
+  if (material.quantity_in_stock <= material.min_stock_level * 1.5) return '#F59E0B'; // Желтый - внимание
+  return '#10B981'; // Зеленый - норма
+};
+
+const getStockStatusText = (material) => {
+  if (material.quantity_in_stock <= material.min_stock_level) return 'Критично низкий';
+  if (material.quantity_in_stock <= material.min_stock_level * 1.5) return 'Требует внимания';
+  return 'В норме';
+};
+  
   // ==================== ПОЛЬЗОВАТЕЛИ ====================
 
   const fetchUsers = async () => {
