@@ -43,17 +43,41 @@ const Header = () => {
             {/* Правая часть - авторизация */}
             {user ? (
               <div style={{display: 'flex', alignItems: 'center', gap: '16px'}}>
-                <Link 
-                  to="/profile" 
-                  className={`nav-link ${isActive('/profile') ? 'active' : ''}`}
-                  style={isActive('/profile') ? {color: '#bfdbfe', fontWeight: 'bold'} : {}}
-                >
-                  Личный кабинет
-                </Link>
-                <span className="nav-link">Привет, {user.name}!</span>
+                {/* Разные ссылки в зависимости от роли пользователя */}
                 {user.role === 'admin' && (
-                  <Link to="/admin" className="nav-link">Админка</Link>
+                  <Link 
+                    to="/admin" 
+                    className={`nav-link ${isActive('/admin') ? 'active' : ''}`}
+                    style={isActive('/admin') ? {color: '#bfdbfe', fontWeight: 'bold'} : {}}
+                  >
+                    Админ панель
+                  </Link>
                 )}
+                {user.role === 'executor' && (
+                  <Link 
+                    to="/executor" 
+                    className={`nav-link ${isActive('/executor') ? 'active' : ''}`}
+                    style={isActive('/executor') ? {color: '#bfdbfe', fontWeight: 'bold'} : {}}
+                  >
+                    Панель исполнителя
+                  </Link>
+                )}
+                {user.role === 'user' && (
+                  <Link 
+                    to="/profile" 
+                    className={`nav-link ${isActive('/profile') ? 'active' : ''}`}
+                    style={isActive('/profile') ? {color: '#bfdbfe', fontWeight: 'bold'} : {}}
+                  >
+                    Личный кабинет
+                  </Link>
+                )}
+                
+                <span className="nav-link">
+                  Привет, {user.name}!
+                  {user.role === 'admin' && ' (Администратор)'}
+                  {user.role === 'executor' && ' (Исполнитель)'}
+                </span>
+                
                 <button 
                   onClick={handleLogout} 
                   className="nav-link"
