@@ -182,7 +182,7 @@ export const executorAPI = {
   }
 };
 
-// ==================== API ФУНКЦИИ ДЛЯ АДМИНА ====================
+// ==================== API ФУНКЦИИ ДЛЯ АДМИНА (ОБЪЕДИНЕННЫЕ) ====================
 
 export const adminAPI = {
   // ==================== УПРАВЛЕНИЕ ПОЛЬЗОВАТЕЛЯМИ ====================
@@ -197,6 +197,21 @@ export const adminAPI = {
       }
     });
     if (!response.ok) throw new Error('Failed to fetch users');
+    return response.json();
+  },
+
+  // Создать пользователя
+  createUser: async (userData) => {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/api/admin/users`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(userData)
+    });
+    if (!response.ok) throw new Error('Failed to create user');
     return response.json();
   },
 
@@ -225,6 +240,63 @@ export const adminAPI = {
       }
     });
     if (!response.ok) throw new Error('Failed to delete user');
+    return response.json();
+  },
+
+  // ==================== УПРАВЛЕНИЕ УСЛУГАМИ ====================
+  
+  // Получить все услуги (включая неактивные)
+  getServices: async () => {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/api/admin/services`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    if (!response.ok) throw new Error('Failed to fetch services');
+    return response.json();
+  },
+
+  // Создать услугу
+  createService: async (serviceData) => {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/api/admin/services`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(serviceData)
+    });
+    if (!response.ok) throw new Error('Failed to create service');
+    return response.json();
+  },
+
+  // Редактировать услугу
+  updateService: async (serviceId, updateData) => {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/api/admin/services/${serviceId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(updateData)
+    });
+    if (!response.ok) throw new Error('Failed to update service');
+    return response.json();
+  },
+
+  // Удалить услугу
+  deleteService: async (serviceId) => {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/api/admin/services/${serviceId}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    if (!response.ok) throw new Error('Failed to delete service');
     return response.json();
   },
 
@@ -268,6 +340,51 @@ export const adminAPI = {
       }
     });
     if (!response.ok) throw new Error('Failed to delete appointment');
+    return response.json();
+  },
+
+  // Назначить исполнителя на заказ
+  assignExecutor: async (appointmentId, executorId) => {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/api/admin/appointments/${appointmentId}/assign-executor`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ executor_id: executorId })
+    });
+    if (!response.ok) throw new Error('Failed to assign executor');
+    return response.json();
+  },
+
+  // Перенести запись
+  rescheduleAppointment: async (appointmentId, newDate, newTime) => {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/api/admin/appointments/${appointmentId}/reschedule`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ 
+        appointment_date: newDate, 
+        appointment_time: newTime 
+      })
+    });
+    if (!response.ok) throw new Error('Failed to reschedule appointment');
+    return response.json();
+  },
+
+  // Получить исполнителей
+  getExecutors: async () => {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/api/admin/executors`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    if (!response.ok) throw new Error('Failed to fetch executors');
     return response.json();
   },
 
@@ -355,118 +472,59 @@ export const adminAPI = {
     });
     if (!response.ok) throw new Error('Failed to fetch materials report');
     return response.json();
-  }
-};
+  },
 
-// Добавьте в конец файла client/src/services/api.js, в раздел adminAPI:
+  // ==================== ДОПОЛНИТЕЛЬНЫЕ ФУНКЦИИ АДМИНА ====================
 
-export const adminAPI = {
-  // ... существующие функции ...
-
-  // ==================== УПРАВЛЕНИЕ УСЛУГАМИ ====================
-  
-  // Получить все услуги (включая неактивные)
-  getServices: async () => {
+  // Получить статистику
+  getStats: async () => {
     const token = localStorage.getItem('token');
-    const response = await fetch(`${API_URL}/api/admin/services`, {
+    const response = await fetch(`${API_URL}/api/admin/stats`, {
       headers: {
         'Authorization': `Bearer ${token}`
       }
     });
-    if (!response.ok) throw new Error('Failed to fetch services');
+    if (!response.ok) throw new Error('Failed to fetch stats');
     return response.json();
   },
 
-  // Создать услугу
-  createService: async (serviceData) => {
+  // Блокировать дату
+  blockDate: async (date, reason) => {
     const token = localStorage.getItem('token');
-    const response = await fetch(`${API_URL}/api/admin/services`, {
+    const response = await fetch(`${API_URL}/api/admin/block-date`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`
       },
-      body: JSON.stringify(serviceData)
+      body: JSON.stringify({ date, reason })
     });
-    if (!response.ok) throw new Error('Failed to create service');
+    if (!response.ok) throw new Error('Failed to block date');
     return response.json();
   },
 
-  // Редактировать услугу
-  updateService: async (serviceId, updateData) => {
+  // Получить заблокированные даты
+  getBlockedDates: async () => {
     const token = localStorage.getItem('token');
-    const response = await fetch(`${API_URL}/api/admin/services/${serviceId}`, {
-      method: 'PUT',
+    const response = await fetch(`${API_URL}/api/admin/blocked-dates`, {
       headers: {
-        'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify(updateData)
+      }
     });
-    if (!response.ok) throw new Error('Failed to update service');
+    if (!response.ok) throw new Error('Failed to fetch blocked dates');
     return response.json();
   },
 
-  // Удалить услугу
-  deleteService: async (serviceId) => {
+  // Разблокировать дату
+  unblockDate: async (blockedDateId) => {
     const token = localStorage.getItem('token');
-    const response = await fetch(`${API_URL}/api/admin/services/${serviceId}`, {
+    const response = await fetch(`${API_URL}/api/admin/blocked-dates/${blockedDateId}`, {
       method: 'DELETE',
       headers: {
         'Authorization': `Bearer ${token}`
       }
     });
-    if (!response.ok) throw new Error('Failed to delete service');
+    if (!response.ok) throw new Error('Failed to unblock date');
     return response.json();
-  },
-
-  // Получить исполнителей
-  getExecutors: async () => {
-    const token = localStorage.getItem('token');
-    const response = await fetch(`${API_URL}/api/admin/executors`, {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    });
-    if (!response.ok) throw new Error('Failed to fetch executors');
-    return response.json();
-  },
-
-  // Назначить исполнителя на заказ
-  assignExecutor: async (appointmentId, executorId) => {
-    const token = localStorage.getItem('token');
-    const response = await fetch(`${API_URL}/api/admin/appointments/${appointmentId}/assign-executor`, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify({ executor_id: executorId })
-    });
-    if (!response.ok) throw new Error('Failed to assign executor');
-    return response.json();
-  },
-
-  // Перенести запись
-  rescheduleAppointment: async (appointmentId, newDate, newTime) => {
-    const token = localStorage.getItem('token');
-    const response = await fetch(`${API_URL}/api/admin/appointments/${appointmentId}/reschedule`, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify({ 
-        appointment_date: newDate, 
-        appointment_time: newTime 
-      })
-    });
-    if (!response.ok) throw new Error('Failed to reschedule appointment');
-    return response.json();
-  },
-
-  // Создать пользователя (используя authAPI.register)
-  createUser: async (userData) => {
-    return await authAPI.register(userData);
   }
 };
