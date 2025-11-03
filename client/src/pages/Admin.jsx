@@ -1,280 +1,317 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { adminAPI } from '../services/api';
 
 const Admin = () => {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('appointments');
+  const [activeTab, setActiveTab] = useState('users');
+  const [loading, setLoading] = useState(true);
 
-  // Состояния данных
-  const [appointments, setAppointments] = useState([]);
+  // Данные
   const [users, setUsers] = useState([]);
-  const [services, setServices] = useState([]);
-  const [blockedDates, setBlockedDates] = useState([]);
-  const [executors, setExecutors] = useState([]);
-  const [stats, setStats] = useState(null);
+  const [appointments, setAppointments] = useState([]);
+  const [materials, setMaterials] = useState([]);
 
-  // Состояния форм
-  const [loading, setLoading] = useState(false);
-  const [serviceForm, setServiceForm] = useState({
+  // Модальные окна
+  const [showUserModal, setShowUserModal] = useState(false);
+  const [showAppointmentModal, setShowAppointmentModal] = useState(false);
+  const [showMaterialModal, setShowMaterialModal] = useState(false);
+  const [showRestockModal, setShowRestockModal] = useState(false);
+
+  // Выбранные элементы для редактирования
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [selectedAppointment, setSelectedAppointment] = useState(null);
+  const [selectedMaterial, setSelectedMaterial] = useState(null);
+
+  // Формы
+  const [userForm, setUserForm] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    password: '',
+    role: 'client'
+  });
+
+  const [appointmentForm, setAppointmentForm] = useState({
+    executor_id: '',
+    appointment_date: '',
+    appointment_time: '',
+    status: '',
+    notes: ''
+  });
+
+  const [materialForm, setMaterialForm] = useState({
     name: '',
     description: '',
-    price: '',
-    duration: '',
-    category: '',
-    preparation_days: 0,
+    unit: '',
+    quantity_in_stock: 0,
+    min_stock_level: 0,
+    price_per_unit: 0,
+    supplier: '',
     is_active: true
   });
-  const [blockDateForm, setBlockDateForm] = useState({
-    date: '',
-    reason: ''
-  });
-  const [editingService, setEditingService] = useState(null);
-  const [showServiceModal, setShowServiceModal] = useState(false);
-  const [showBlockDateModal, setShowBlockDateModal] = useState(false);
 
-  // Проверка прав администратора
+  const [restockForm, setRestockForm] = useState({
+    quantity: 0,
+    cost_per_unit: 0,
+    supplier_info: ''
+  });
+
+  // Фильтры
+  const [userFilters, setUserFilters] = useState({ role: '', search: '' });
+  const [appointmentFilters, setAppointmentFilters] = useState({ status: '', date_from: '', date_to: '' });
+  const [materialFilters, setMaterialFilters] = useState({ search: '', low_stock_only: false });
+
   useEffect(() => {
+    checkAdminAccess();
+  }, []);
+
+  useEffect(() => {
+    if (!loading) {
+      switch (activeTab) {
+        case 'users':
+          fetchUsers();
+          break;
+        case 'appointments':
+          fetchAppointments();
+          break;
+        case 'materials':
+          fetchMaterials();
+          break;
+      }
+    }
+  }, [activeTab, loading]);
+
+  const checkAdminAccess = () => {
     const user = JSON.parse(localStorage.getItem('user'));
     const token = localStorage.getItem('token');
+    
     if (!user || user.role !== 'admin' || !token) {
-      alert('Доступ запрещён. Требуются права администратора.');
+      alert('Доступ запрещен. Требуются права администратора.');
       navigate('/');
+      return;
     }
-  }, [navigate]);
-
-  // Загрузка данных при смене вкладки
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token) return;
-
-    if (activeTab === 'appointments') {
-      fetchAppointments();
-    } else if (activeTab === 'users') {
-      fetchUsers();
-    } else if (activeTab === 'services') {
-      fetchServices();
-    } else if (activeTab === 'blocked-dates') {
-      fetchBlockedDates();
-      fetchExecutors();
-    } else if (activeTab === 'stats') {
-      fetchStats();
-    }
-  }, [activeTab]);
-
-  // ==================== API ЗАПРОСЫ ====================
-
-  const apiCall = async (url, options = {}) => {
-    const token = localStorage.getItem('token');
-    const res = await fetch(`https://car-detailing-app-14qu.onrender.com/api/admin${url}`, {
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
-        ...options.headers
-      },
-      ...options
-    });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.message || 'Ошибка сервера');
-    }
-    return res.json();
+    setLoading(false);
   };
 
-  const fetchAppointments = async () => {
-    setLoading(true);
-    try {
-      const data = await apiCall('/appointments');
-      setAppointments(data);
-    } catch (err) {
-      alert('Ошибка загрузки записей: ' + err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // ==================== ПОЛЬЗОВАТЕЛИ ====================
 
   const fetchUsers = async () => {
-    setLoading(true);
     try {
-      const data = await apiCall('/users');
-      setUsers(data);
-    } catch (err) {
-      alert('Ошибка загрузки пользователей: ' + err.message);
-    } finally {
-      setLoading(false);
+      const data = await adminAPI.getUsers(userFilters);
+      setUsers(data.users || []);
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      alert('Ошибка загрузки пользователей');
     }
   };
 
-  const fetchServices = async () => {
-    setLoading(true);
+  const handleEditUser = (user) => {
+    setSelectedUser(user);
+    setUserForm({
+      name: user.name || '',
+      email: user.email || '',
+      phone: user.phone || '',
+      password: '',
+      role: user.role || 'client'
+    });
+    setShowUserModal(true);
+  };
+
+  const handleCreateUser = () => {
+    setSelectedUser(null);
+    setUserForm({
+      name: '',
+      email: '',
+      phone: '',
+      password: '',
+      role: 'client'
+    });
+    setShowUserModal(true);
+  };
+
+  const submitUserForm = async () => {
     try {
-      const data = await apiCall('/services');
-      setServices(data);
-    } catch (err) {
-      alert('Ошибка загрузки услуг: ' + err.message);
-    } finally {
-      setLoading(false);
+      if (selectedUser) {
+        // Редактирование
+        await adminAPI.updateUser(selectedUser.id, userForm);
+        alert('Пользователь обновлен');
+      } else {
+        // Создание (через регистрацию)
+        const { authAPI } = await import('../services/api');
+        await authAPI.register(userForm);
+        alert('Пользователь создан');
+      }
+      setShowUserModal(false);
+      fetchUsers();
+    } catch (error) {
+      console.error('Error saving user:', error);
+      alert('Ошибка сохранения пользователя: ' + error.message);
     }
   };
 
-  const fetchBlockedDates = async () => {
-    setLoading(true);
-    try {
-      const data = await apiCall('/blocked-dates');
-      setBlockedDates(data);
-    } catch (err) {
-      alert('Ошибка загрузки заблокированных дат: ' + err.message);
-    } finally {
-      setLoading(false);
+  const deleteUser = async (userId) => {
+    if (!window.confirm('Вы уверены, что хотите удалить этого пользователя?')) return;
+
+        try {
+      await adminAPI.deleteUser(userId);
+      alert('Пользователь удален');
+      fetchUsers();
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      alert('Ошибка удаления пользователя: ' + error.message);
     }
   };
 
-  const fetchExecutors = async () => {
-    setLoading(true);
+  // ==================== ЗАКАЗЫ ====================
+
+  const fetchAppointments = async () => {
     try {
-      const data = await apiCall('/executors');
-      setExecutors(data);
-    } catch (err) {
-      alert('Ошибка загрузки исполнителей: ' + err.message);
-    } finally {
-      setLoading(false);
+      const data = await adminAPI.getAppointments(appointmentFilters);
+      setAppointments(data.appointments || []);
+    } catch (error) {
+      console.error('Error fetching appointments:', error);
+      alert('Ошибка загрузки заказов');
     }
   };
 
-  const fetchStats = async () => {
-    setLoading(true);
-    try {
-      const data = await apiCall('/stats');
-      setStats(data);
-    } catch (err) {
-      alert('Ошибка загрузки статистики: ' + err.message);
-    } finally {
-      setLoading(false);
-    }
+  const handleEditAppointment = (appointment) => {
+    setSelectedAppointment(appointment);
+    setAppointmentForm({
+      executor_id: appointment.executor_id || '',
+      appointment_date: appointment.appointment_date || '',
+      appointment_time: appointment.appointment_time || '',
+      status: appointment.status || '',
+      notes: appointment.notes || ''
+    });
+    setShowAppointmentModal(true);
   };
 
-  const updateAppointmentStatus = async (id, status) => {
+  const submitAppointmentForm = async () => {
     try {
-      await apiCall(`/appointments/${id}/status`, {
-        method: 'PATCH',
-        body: JSON.stringify({ status })
-      });
+      await adminAPI.updateAppointment(selectedAppointment.id, appointmentForm);
+      alert('Заказ обновлен');
+      setShowAppointmentModal(false);
       fetchAppointments();
-      alert('Статус обновлён');
-    } catch (err) {
-      alert('Ошибка обновления статуса: ' + err.message);
+    } catch (error) {
+      console.error('Error updating appointment:', error);
+      alert('Ошибка обновления заказа: ' + error.message);
     }
   };
 
-  const assignExecutor = async (appointmentId, executorId) => {
+  const deleteAppointment = async (appointmentId) => {
+    if (!window.confirm('Вы уверены, что хотите удалить этот заказ?')) return;
+
     try {
-      await apiCall(`/appointments/${appointmentId}/assign-executor`, {
-        method: 'PATCH',
-        body: JSON.stringify({ executor_id: executorId })
-      });
+      await adminAPI.deleteAppointment(appointmentId);
+      alert('Заказ удален');
       fetchAppointments();
-      alert('Исполнитель назначен');
-    } catch (err) {
-      alert('Ошибка назначения: ' + err.message);
+    } catch (error) {
+      console.error('Error deleting appointment:', error);
+      alert('Ошибка удаления заказа: ' + error.message);
     }
   };
 
-  const createService = async (e) => {
-    e.preventDefault();
+  // ==================== МАТЕРИАЛЫ ====================
+
+  const fetchMaterials = async () => {
     try {
-      await apiCall('/services', {
-        method: 'POST',
-        body: JSON.stringify(serviceForm)
-      });
-      setServiceForm({
-        name: '',
-        description: '',
-        price: '',
-        duration: '',
-        category: '',
-        preparation_days: 0,
-        is_active: true
-      });
-      setShowServiceModal(false);
-      fetchServices();
-      alert('Услуга создана');
-    } catch (err) {
-      alert('Ошибка создания услуги: ' + err.message);
+      const data = await adminAPI.getMaterials(materialFilters);
+      setMaterials(data.materials || []);
+    } catch (error) {
+      console.error('Error fetching materials:', error);
+      alert('Ошибка загрузки материалов');
     }
   };
 
-  const updateService = async (e) => {
-    e.preventDefault();
+  const handleEditMaterial = (material) => {
+    setSelectedMaterial(material);
+    setMaterialForm({
+      name: material.name || '',
+      description: material.description || '',
+      unit: material.unit || '',
+      quantity_in_stock: material.quantity_in_stock || 0,
+      min_stock_level: material.min_stock_level || 0,
+      price_per_unit: material.price_per_unit || 0,
+      supplier: material.supplier || '',
+      is_active: material.is_active !== undefined ? material.is_active : true
+    });
+    setShowMaterialModal(true);
+  };
+
+  const handleCreateMaterial = () => {
+    setSelectedMaterial(null);
+    setMaterialForm({
+      name: '',
+      description: '',
+      unit: '',
+      quantity_in_stock: 0,
+      min_stock_level: 0,
+      price_per_unit: 0,
+      supplier: '',
+      is_active: true
+    });
+    setShowMaterialModal(true);
+  };
+
+  const submitMaterialForm = async () => {
     try {
-      await apiCall(`/services/${editingService.id}`, {
-        method: 'PUT',
-        body: JSON.stringify(serviceForm)
-      });
-      setEditingService(null);
-      setShowServiceModal(false);
-      fetchServices();
-      alert('Услуга обновлена');
-    } catch (err) {
-      alert('Ошибка обновления услуги: ' + err.message);
+      if (selectedMaterial) {
+        await adminAPI.updateMaterial(selectedMaterial.id, materialForm);
+        alert('Материал обновлен');
+      } else {
+        await adminAPI.createMaterial(materialForm);
+        alert('Материал создан');
+      }
+      setShowMaterialModal(false);
+      fetchMaterials();
+    } catch (error) {
+      console.error('Error saving material:', error);
+      alert('Ошибка сохранения материала: ' + error.message);
     }
   };
 
-  const deleteService = async (id) => {
-    if (!confirm('Вы уверены, что хотите удалить услугу?')) return;
+  const deleteMaterial = async (materialId) => {
+    if (!window.confirm('Вы уверены, что хотите удалить этот материал?')) return;
+
     try {
-      await apiCall(`/services/${id}`, { method: 'DELETE' });
-      fetchServices();
-      alert('Услуга удалена');
-    } catch (err) {
-      alert('Ошибка удаления: ' + err.message);
+      await adminAPI.deleteMaterial(materialId);
+      alert('Материал удален');
+      fetchMaterials();
+    } catch (error) {
+      console.error('Error deleting material:', error);
+      alert('Ошибка удаления материала: ' + error.message);
     }
   };
 
-  const blockDate = async (e) => {
-    e.preventDefault();
-    try {
-      await apiCall('/block-date', {
-        method: 'POST',
-        body: JSON.stringify(blockDateForm)
-      });
-      setBlockDateForm({ date: '', reason: '' });
-      setShowBlockDateModal(false);
-      fetchBlockedDates();
-      alert('Дата заблокирована');
-    } catch (err) {
-      alert('Ошибка блокировки даты: ' + err.message);
-    }
+  const handleRestockMaterial = (material) => {
+    setSelectedMaterial(material);
+    setRestockForm({
+      quantity: 0,
+      cost_per_unit: material.price_per_unit || 0,
+      supplier_info: material.supplier || ''
+    });
+    setShowRestockModal(true);
   };
 
-  const unblockDate = async (id) => {
-    if (!confirm('Разблокировать дату?')) return;
+  const submitRestockForm = async () => {
     try {
-      await apiCall(`/blocked-dates/${id}`, { method: 'DELETE' });
-      fetchBlockedDates();
-      alert('Дата разблокирована');
-    } catch (err) {
-      alert('Ошибка разблокировки: ' + err.message);
+      await adminAPI.restockMaterial(selectedMaterial.id, restockForm);
+      alert('Склад пополнен');
+      setShowRestockModal(false);
+      fetchMaterials();
+    } catch (error) {
+      console.error('Error restocking material:', error);
+      alert('Ошибка пополнения склада: ' + error.message);
     }
   };
 
   // ==================== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ====================
 
-  const handleServiceEdit = (service) => {
-    setServiceForm({
-      name: service.name,
-      description: service.description,
-      price: service.price,
-      duration: service.duration,
-      category: service.category,
-      preparation_days: service.preparation_days,
-      is_active: service.is_active
-    });
-    setEditingService(service);
-    setShowServiceModal(true);
-  };
-
   const getStatusColor = (status) => {
     switch (status) {
       case 'booked': return '#3B82F6';
+      case 'in_progress': return '#F59E0B';
       case 'completed': return '#10B981';
       case 'cancelled': return '#EF4444';
       default: return '#6B7280';
@@ -284,265 +321,232 @@ const Admin = () => {
   const getStatusText = (status) => {
     switch (status) {
       case 'booked': return 'Забронировано';
+      case 'in_progress': return 'В работе';
       case 'completed': return 'Выполнено';
       case 'cancelled': return 'Отменено';
       default: return status;
     }
   };
 
-  // ==================== РЕНДЕР ====================
+  const getRoleText = (role) => {
+    switch (role) {
+      case 'admin': return 'Администратор';
+      case 'executor': return 'Исполнитель';
+      case 'client': return 'Клиент';
+      default: return role;
+    }
+  };
+
+  const getStockStatusColor = (material) => {
+    if (material.quantity_in_stock <= material.min_stock_level) return '#EF4444';
+    if (material.quantity_in_stock <= material.min_stock_level * 1.5) return '#F59E0B';
+    return '#10B981';
+  };
+
+  if (loading) {
+    return (
+      <div className="container py-8 text-center">
+        <div style={{fontSize: '18px', color: '#666'}}>Проверка доступа...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="container py-8">
-      <h1 style={{ fontSize: '28px', fontWeight: 'bold', marginBottom: '30px' }}>
+      <h1 style={{fontSize: '28px', fontWeight: 'bold', marginBottom: '30px'}}>
         Панель администратора
       </h1>
 
-      {/* Навигация */}
-      <div style={{
-        display: 'flex',
-        gap: '10px',
-        marginBottom: '30px',
-        borderBottom: '1px solid #E5E7EB'
-      }}>
-        {['appointments', 'users', 'services', 'blocked-dates', 'stats'].map(tab => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            style={{
-              padding: '10px 20px',
-              border: 'none',
-              background: activeTab === tab ? '#2563eb' : 'transparent',
-              color: activeTab === tab ? 'white' : '#6B7280',
-              cursor: 'pointer',
-              borderBottom: activeTab === tab ? '2px solid #2563eb' : '2px solid transparent'
-            }}
-          >
-            {tab === 'appointments' && 'Все записи'}
-            {tab === 'users' && 'Пользователи'}
-            {tab === 'services' && 'Услуги'}
-            {tab === 'blocked-dates' && 'Блокировка дат'}
-            {tab === 'stats' && 'Статистика'}
-          </button>
-        ))}
+      {/* Навигация по вкладкам */}
+      <div style={{display: 'flex', gap: '10px', marginBottom: '30px', borderBottom: '1px solid #E5E7EB'}}>
+        <button
+          onClick={() => setActiveTab('users')}
+          style={{
+            padding: '10px 20px',
+            border: 'none',
+            background: activeTab === 'users' ? '#2563eb' : 'transparent',
+            color: activeTab === 'users' ? 'white' : '#6B7280',
+            cursor: 'pointer',
+            borderBottom: activeTab === 'users' ? '2px solid #2563eb' : '2px solid transparent'
+          }}
+        >
+          Пользователи ({users.length})
+        </button>
+        <button
+          onClick={() => setActiveTab('appointments')}
+          style={{
+            padding: '10px 20px',
+            border: 'none',
+            background: activeTab === 'appointments' ? '#2563eb' : 'transparent',
+            color: activeTab === 'appointments' ? 'white' : '#6B7280',
+            cursor: 'pointer',
+            borderBottom: activeTab === 'appointments' ? '2px solid #2563eb' : '2px solid transparent'
+          }}
+        >
+          Заказы ({appointments.length})
+        </button>
+               <button
+          onClick={() => setActiveTab('materials')}
+          style={{
+            padding: '10px 20px',
+            border: 'none',
+            background: activeTab === 'materials' ? '#2563eb' : 'transparent',
+            color: activeTab === 'materials' ? 'white' : '#6B7280',
+            cursor: 'pointer',
+            borderBottom: activeTab === 'materials' ? '2px solid #2563eb' : '2px solid transparent'
+          }}
+        >
+          Расходные материалы ({materials.length})
+        </button>
       </div>
 
-      {/* Кнопки действий */}
-      {activeTab === 'services' && (
-        <div style={{ marginBottom: '20px' }}>
-          <button
-            onClick={() => {
-              setEditingService(null);
-              setServiceForm({
-                name: '',
-                description: '',
-                price: '',
-                duration: '',
-                category: '',
-                preparation_days: 0,
-                is_active: true
-              });
-              setShowServiceModal(true);
-            }}
-            style={{
-              background: '#10B981',
-              color: 'white',
-              border: 'none',
-              padding: '8px 16px',
-              borderRadius: '4px',
-              cursor: 'pointer'
-            }}
-          >
-            + Добавить услугу
-          </button>
-        </div>
-      )}
-
-      {activeTab === 'blocked-dates' && (
-        <div style={{ marginBottom: '20px' }}>
-          <button
-            onClick={() => setShowBlockDateModal(true)}
-            style={{
-              background: '#EF4444',
-              color: 'white',
-              border: 'none',
-              padding: '8px 16px',
-              borderRadius: '4px',
-              cursor: 'pointer'
-            }}
-          >
-            + Заблокировать дату
-          </button>
-        </div>
-      )}
-
-      {/* Содержимое вкладок */}
-      {loading && <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>Загрузка...</div>}
-
-      {activeTab === 'appointments' && !loading && (
+      {/* ==================== ВКЛАДКА ПОЛЬЗОВАТЕЛИ ==================== */}
+      {activeTab === 'users' && (
         <div>
-          <h2 style={{ fontSize: '22px', fontWeight: '600', marginBottom: '20px' }}>
-            Все записи ({appointments.length})
-          </h2>
-          {appointments.length === 0 ? (
-            <div style={{ textAlign: 'center', color: '#666', padding: '40px' }}>Записей нет</div>
-          ) : (
-            <div style={{ display: 'grid', gap: '15px' }}>
-              {appointments.map(appt => (
-                <div key={appt.id} style={{
-                  border: '1px solid #E5E7EB',
-                  borderRadius: '8px',
-                  padding: '20px',
-                  background: 'white'
-                }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '10px' }}>
-                    <div style={{ flex: 1 }}>
-                      <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '5px' }}>{appt.service_name}</h3>
-                      <p><strong>Клиент:</strong> {appt.user_name} ({appt.user_phone})</p>
-                      <p><strong>Дата:</strong> {new Date(appt.appointment_date).toLocaleDateString('ru-RU')} в {appt.appointment_time}</p>
-                      {appt.executor_name && <p><strong>Исполнитель:</strong> {appt.executor_name}</p>}
-                      {appt.notes && <p><strong>Примечания:</strong> {appt.notes}</p>}
-                    </div>
-                    <div style={{ textAlign: 'right' }}>
-                      <span style={{
-                        background: getStatusColor(appt.status),
-                        color: 'white',
-                        padding: '4px 12px',
-                        borderRadius: '20px',
-                        fontSize: '14px',
-                        display: 'inline-block',
-                        marginBottom: '10px'
-                      }}>
-                        {getStatusText(appt.status)}
-                      </span>
-                      {appt.status === 'booked' && (
-                        <div style={{ display: 'flex', gap: '8px', flexDirection: 'column' }}>
-                          <button
-                            onClick={() => updateAppointmentStatus(appt.id, 'completed')}
-                            style={{ background: '#10B981', color: 'white', border: 'none', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}
-                          >
-                            Выполнено
-                          </button>
-                          <button
-                            onClick={() => updateAppointmentStatus(appt.id, 'cancelled')}
-                            style={{ background: '#EF4444', color: 'white', border: 'none', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}
-                          >
-                            Отменить
-                          </button>
-                        </div>
-                      )}
-                      {executors.length > 0 && (
-                        <select
-                          onChange={(e) => assignExecutor(appt.id, e.target.value)}
-                          value={appt.executor_id || ''}
-                          style={{ marginTop: '8px', fontSize: '12px', padding: '4px' }}
-                        >
-                          <option value="">Назначить исполнителя</option>
-                          {executors.map(ex => (
-                            <option key={ex.id} value={ex.id}>{ex.name}</option>
-                          ))}
-                        </select>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
+          <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px'}}>
+            <h2 style={{fontSize: '22px', fontWeight: '600'}}>
+              Управление пользователями
+            </h2>
+            <button
+              onClick={handleCreateUser}
+              style={{
+                background: '#10B981',
+                color: 'white',
+                border: 'none',
+                padding: '10px 20px',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontWeight: '500'
+              }}
+            >
+              + Добавить пользователя
+            </button>
+          </div>
+
+          {/* Фильтры для пользователей */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+            gap: '15px',
+            marginBottom: '20px',
+            padding: '15px',
+            background: '#F9FAFB',
+            borderRadius: '8px',
+            border: '1px solid #E5E7EB'
+          }}>
+            <div>
+              <label style={{display: 'block', marginBottom: '5px', fontWeight: '500'}}>
+                Роль:
+              </label>
+              <select
+                value={userFilters.role}
+                onChange={(e) => {
+                  setUserFilters({...userFilters, role: e.target.value});
+                  setTimeout(fetchUsers, 300);
+                }}
+                style={{
+                  width: '100%',
+                  padding: '8px',
+                  border: '1px solid #D1D5DB',
+                  borderRadius: '4px'
+                }}
+              >
+                <option value="">Все роли</option>
+                <option value="client">Клиенты</option>
+                <option value="executor">Исполнители</option>
+                <option value="admin">Администраторы</option>
+              </select>
             </div>
-          )}
-        </div>
-      )}
+            <div>
+              <label style={{display: 'block', marginBottom: '5px', fontWeight: '500'}}>
+                Поиск:
+              </label>
+              <input
+                type="text"
+                value={userFilters.search}
+                onChange={(e) => {
+                  setUserFilters({...userFilters, search: e.target.value});
+                  setTimeout(fetchUsers, 500);
+                }}
+                placeholder="Имя, email или телефон..."
+                style={{
+                  width: '100%',
+                  padding: '8px',
+                  border: '1px solid #D1D5DB',
+                  borderRadius: '4px'
+                }}
+              />
+            </div>
+          </div>
 
-      {activeTab === 'users' && !loading && (
-        <div>
-          <h2 style={{ fontSize: '22px', fontWeight: '600', marginBottom: '20px' }}>
-            Все пользователи ({users.length})
-          </h2>
+          {/* Список пользователей */}
           {users.length === 0 ? (
-            <div style={{ textAlign: 'center', color: '#666', padding: '40px' }}>Пользователей нет</div>
+            <div style={{textAlign: 'center', color: '#666', padding: '40px'}}>
+              Пользователи не найдены
+            </div>
           ) : (
-            <div style={{ display: 'grid', gap: '15px' }}>
-              {users.map(user => (
+            <div style={{display: 'grid', gap: '15px'}}>
+              {users.map((user) => (
                 <div key={user.id} style={{
                   border: '1px solid #E5E7EB',
                   borderRadius: '8px',
                   padding: '20px',
                   background: 'white'
                 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <div>
-                      <h3 style={{ fontSize: '18px', fontWeight: '600' }}>{user.name}</h3>
-                      <p><strong>Email:</strong> {user.email}</p>
-                      <p><strong>Телефон:</strong> {user.phone}</p>
-                      <p><strong>Роль:</strong> {user.role === 'admin' ? 'Администратор' : user.role === 'executor' ? 'Исполнитель' : 'Клиент'}</p>
+                  <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'start'}}>
+                    <div style={{flex: 1}}>
+                      <h3 style={{fontSize: '18px', fontWeight: '600', marginBottom: '5px'}}>
+                        {user.name}
+                      </h3>
+                      <div style={{display: 'grid', gap: '5px', marginBottom: '10px'}}>
+                        <p style={{color: '#666'}}>
+                          <strong>Email:</strong> {user.email}
+                        </p>
+                        <p style={{color: '#666'}}>
+                          <strong>Телефон:</strong> {user.phone || 'Не указан'}
+                        </p>
+                        <p style={{color: '#666'}}>
+                          <strong>Зарегистрирован:</strong> {new Date(user.created_at).toLocaleDateString('ru-RU')}
+                        </p>
+                      </div>
                     </div>
-                    <div style={{ textAlign: 'right' }}>
-                      <span style={{
-                        background: user.is_active ? '#10B981' : '#EF4444',
+                    <div style={{display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '10px'}}>
+                      <div style={{
+                        background: user.role === 'admin' ? '#7C3AED' : user.role === 'executor' ? '#F59E0B' : '#3B82F6',
                         color: 'white',
-                        padding: '4px 12px',
-                        borderRadius: '20px',
+                        padding: '5px 12px',
+                        borderRadius: '15px',
                         fontSize: '14px',
-                        display: 'inline-block'
+                        fontWeight: '500'
                       }}>
-                        {user.is_active ? 'Активен' : 'Заблокирован'}
-                      </span>
-                      <p style={{ color: '#666', fontSize: '12px', marginTop: '5px' }}>
-                        Зарегистрирован: {new Date(user.created_at).toLocaleDateString('ru-RU')}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
-      {activeTab === 'services' && !loading && (
-        <div>
-          <h2 style={{ fontSize: '22px', fontWeight: '600', marginBottom: '20px' }}>
-            Услуги ({services.length})
-          </h2>
-          {services.length === 0 ? (
-            <div style={{ textAlign: 'center', color: '#666', padding: '40px' }}>Услуг нет</div>
-          ) : (
-            <div style={{ display: 'grid', gap: '15px' }}>
-              {services.map(s => (
-                <div key={s.id} style={{
-                  border: '1px solid #E5E7EB',
-                  borderRadius: '8px',
-                  padding: '20px',
-                  background: 'white'
-                }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <div>
-                      <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '5px' }}>{s.name}</h3>
-                      <p>{s.description}</p>
-                      <p><strong>Цена:</strong> {s.price} ₽</p>
-                      <p><strong>Длительность:</strong> {s.duration} мин</p>
-                      <p><strong>Подготовка:</strong> {s.preparation_days} дн.</p>
-                      <p><strong>Категория:</strong> {s.category}</p>
-                    </div>
-                    <div style={{ textAlign: 'right' }}>
-                      <span style={{
-                        background: s.is_active ? '#10B981' : '#6B7280',
-                        color: 'white',
-                        padding: '4px 12px',
-                        borderRadius: '20px',
-                        fontSize: '14px'
-                      }}>
-                        {s.is_active ? 'Активна' : 'Неактивна'}
-                      </span>
-                      <div style={{ marginTop: '10px', display: 'flex', gap: '8px' }}>
+                        {getRoleText(user.role)}
+                      </div>
+                      <div style={{display: 'flex', gap: '8px'}}>
                         <button
-                          onClick={() => handleServiceEdit(s)}
-                          style={{ background: '#3B82F6', color: 'white', border: 'none', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}
+                          onClick={() => handleEditUser(user)}
+                          style={{
+                            background: '#3B82F6',
+                            color: 'white',
+                            border: 'none',
+                            padding: '6px 12px',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            fontSize: '14px'
+                          }}
                         >
                           Редактировать
                         </button>
                         <button
-                          onClick={() => deleteService(s.id)}
-                          style={{ background: '#EF4444', color: 'white', border: 'none', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}
+                          onClick={() => deleteUser(user.id)}
+                          style={{
+                            background: '#EF4444',
+                            color: 'white',
+                            border: 'none',
+                            padding: '6px 12px',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            fontSize: '14px'
+                          }}
                         >
                           Удалить
                         </button>
@@ -556,35 +560,181 @@ const Admin = () => {
         </div>
       )}
 
-      {activeTab === 'blocked-dates' && !loading && (
+      {/* ==================== ВКЛАДКА ЗАКАЗЫ ==================== */}
+      {activeTab === 'appointments' && (
         <div>
-          <h2 style={{ fontSize: '22px', fontWeight: '600', marginBottom: '20px' }}>
-            Заблокированные даты ({blockedDates.length})
-          </h2>
-          {blockedDates.length === 0 ? (
-            <div style={{ textAlign: 'center', color: '#666', padding: '40px' }}>Нет заблокированных дат</div>
+          <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px'}}>
+            <h2 style={{fontSize: '22px', fontWeight: '600'}}>
+              Управление заказами
+            </h2>
+          </div>
+
+          {/* Фильтры для заказов */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+            gap: '15px',
+            marginBottom: '20px',
+            padding: '15px',
+            background: '#F9FAFB',
+            borderRadius: '8px',
+            border: '1px solid #E5E7EB'
+          }}>
+            <div>
+              <label style={{display: 'block', marginBottom: '5px', fontWeight: '500'}}>
+                Статус:
+              </label>
+              <select
+                value={appointmentFilters.status}
+                onChange={(e) => {
+                  setAppointmentFilters({...appointmentFilters, status: e.target.value});
+                  setTimeout(fetchAppointments, 300);
+                }}
+                style={{
+                  width: '100%',
+                  padding: '8px',
+                  border: '1px solid #D1D5DB',
+                  borderRadius: '4px'
+                }}
+              >
+                <option value="">Все статусы</option>
+                <option value="booked">Забронировано</option>
+                <option value="in_progress">В работе</option>
+                <option value="completed">Выполнено</option>
+                <option value="cancelled">Отменено</option>
+              </select>
+            </div>
+            <div>
+              <label style={{display: 'block', marginBottom: '5px', fontWeight: '500'}}>
+                Дата от:
+              </label>
+              <input
+                type="date"
+                value={appointmentFilters.date_from}
+                onChange={(e) => {
+                  setAppointmentFilters({...appointmentFilters, date_from: e.target.value});
+                  setTimeout(fetchAppointments, 300);
+                }}
+                style={{
+                  width: '100%',
+                  padding: '8px',
+                  border: '1px solid #D1D5DB',
+                  borderRadius: '4px'
+                }}
+              />
+            </div>
+            <div>
+              <label style={{display: 'block', marginBottom: '5px', fontWeight: '500'}}>
+                Дата до:
+              </label>
+              <input
+                type="date"
+                value={appointmentFilters.date_to}
+                onChange={(e) => {
+                  setAppointmentFilters({...appointmentFilters, date_to: e.target.value});
+                  setTimeout(fetchAppointments, 300);
+                }}
+                style={{
+                  width: '100%',
+                  padding: '8px',
+                  border: '1px solid #D1D5DB',
+                  borderRadius: '4px'
+                }}
+              />
+            </div>
+          </div>
+
+          {/* Список заказов */}
+          {appointments.length === 0 ? (
+            <div style={{textAlign: 'center', color: '#666', padding: '40px'}}>
+              Заказы не найдены
+            </div>
           ) : (
-            <div style={{ display: 'grid', gap: '15px' }}>
-              {blockedDates.map(bd => (
-                <div key={bd.id} style={{
+            <div style={{display: 'grid', gap: '15px'}}>
+              {appointments.map((appointment) => (
+                <div key={appointment.id} style={{
                   border: '1px solid #E5E7EB',
                   borderRadius: '8px',
-                  padding: '15px',
-                  background: 'white',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center'
+                  padding: '20px',
+                  background: 'white'
                 }}>
-                  <div>
-                    <strong>{new Date(bd.date).toLocaleDateString('ru-RU')}</strong>
-                    {bd.reason && <div style={{ color: '#666', fontSize: '14px' }}>{bd.reason}</div>}
+                  <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '15px'}}>
+                    <div style={{flex: 1}}>
+                      <h3 style={{fontSize: '18px', fontWeight: '600', marginBottom: '5px'}}>
+                        {appointment.service_name}
+                      </h3>
+                      <div style={{display: 'grid', gap: '5px', marginBottom: '10px'}}>
+                        <p style={{color: '#666'}}>
+                          <strong>Клиент:</strong> {appointment.user_name} ({appointment.user_email})
+                        </p>
+                        <p style={{color: '#666'}}>
+                          <strong>Телефон:</strong> {appointment.user_phone || 'Не указан'}
+                        </p>
+                        <p style={{color: '#666'}}>
+                          <strong>Исполнитель:</strong> {appointment.executor_name || 'Не назначен'}
+                        </p>
+                        <p style={{color: '#666'}}>
+                          <strong>Дата:</strong> {new Date(appointment.appointment_date).toLocaleDateString('ru-RU')} в {appointment.appointment_time}
+                        </p>
+                        <p style={{color: '#666'}}>
+                          <strong>Цена:</strong> {appointment.price}₽ | <strong>Длительность:</strong> {appointment.duration} мин
+                        </p>
+                      </div>
+                      {appointment.notes && (
+                        <div style={{
+                          background: '#F3F4F6',
+                          padding: '8px',
+                          borderRadius: '4px',
+                          fontSize: '14px',
+                          color: '#666'
+                        }}>
+                          <strong>Заметки:</strong> {appointment.notes}
+                        </div>
+                      )}
+                    </div>
+                    <div style={{display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '10px'}}>
+                      <div style={{
+                        background: getStatusColor(appointment.status),
+                        color: 'white',
+                        padding: '5px 12px',
+                        borderRadius: '15px',
+                        fontSize: '14px',
+                        fontWeight: '500'
+                      }}>
+                        {getStatusText(appointment.status)}
+                      </div>
+                      <div style={{display: 'flex', gap: '8px'}}>
+                        <button
+                          onClick={() => handleEditAppointment(appointment)}
+                          style={{
+                            background: '#3B82F6',
+                            color: 'white',
+                            border: 'none',
+                            padding: '6px 12px',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            fontSize: '14px'
+                          }}
+                        >
+                          Редактировать
+                        </button>
+                        <button
+                          onClick={() => deleteAppointment(appointment.id)}
+                          style={{
+                            background: '#EF4444',
+                            color: 'white',
+                            border: 'none',
+                            padding: '6px 12px',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            fontSize: '14px'
+                          }}
+                        >
+                          Удалить
+                        </button>
+                      </div>
+                    </div>
                   </div>
-                  <button
-                    onClick={() => unblockDate(bd.id)}
-                    style={{ background: '#10B981', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer' }}
-                  >
-                    Разблокировать
-                  </button>
                 </div>
               ))}
             </div>
@@ -592,38 +742,212 @@ const Admin = () => {
         </div>
       )}
 
-      {activeTab === 'stats' && !loading && stats && (
+      {/* ==================== ВКЛАДКА МАТЕРИАЛЫ ==================== */}
+      {activeTab === 'materials' && (
         <div>
-          <h2 style={{ fontSize: '22px', fontWeight: '600', marginBottom: '20px' }}>Статистика</h2>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px' }}>
-            <div style={{ background: '#f0f9ff', padding: '20px', borderRadius: '8px', textAlign: 'center' }}>
-              <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#0284c7' }}>{stats.users}</div>
-              <div>Активных пользователей</div>
+          <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px'}}>
+            <h2 style={{fontSize: '22px', fontWeight: '600'}}>
+              Управление материалами
+            </h2>
+            <button
+              onClick={handleCreateMaterial}
+              style={{
+                background: '#10B981',
+                color: 'white',
+                border: 'none',
+                padding: '10px 20px',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontWeight: '500'
+              }}
+            >
+              + Добавить материал
+            </button>
+          </div>
+
+          {/* Фильтры для материалов */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+            gap: '15px',
+            marginBottom: '20px',
+            padding: '15px',
+            background: '#F9FAFB',
+            borderRadius: '8px',
+            border: '1px solid #E5E7EB'
+          }}>
+            <div>
+              <label style={{display: 'block', marginBottom: '5px', fontWeight: '500'}}>
+                Поиск:
+              </label>
+              <input
+                type="text"
+                value={materialFilters.search}
+                onChange={(e) => {
+                  setMaterialFilters({...materialFilters, search: e.target.value});
+                  setTimeout(fetchMaterials, 500);
+                }}
+                placeholder="Название или описание материала..."
+                style={{
+                  width: '100%',
+                  padding: '8px',
+                  border: '1px solid #D1D5DB',
+                  borderRadius: '4px'
+                }}
+              />
             </div>
-            <div style={{ background: '#f0fdf4', padding: '20px', borderRadius: '8px', textAlign: 'center' }}>
-              <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#16a34a' }}>{stats.services}</div>
-              <div>Активных услуг</div>
-            </div>
-            <div style={{ background: '#fffbeb', padding: '20px', borderRadius: '8px', textAlign: 'center' }}>
-              <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#ca8a04' }}>{stats.appointments.booked}</div>
-              <div>Активных записей</div>
-            </div>
-            <div style={{ background: '#fef2f2', padding: '20px', borderRadius: '8px', textAlign: 'center' }}>
-              <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#dc2626' }}>{stats.revenue.toFixed(2)} ₽</div>
-              <div>Выручка (30 дн.)</div>
+            <div>
+              <label style={{display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer'}}>
+                <input
+                  type="checkbox"
+                  checked={materialFilters.low_stock_only}
+                  onChange={(e) => {
+                    setMaterialFilters({...materialFilters, low_stock_only: e.target.checked});
+                    setTimeout(fetchMaterials, 300);
+                  }}
+                />
+                Показать только материалы с низким запасом
+              </label>
             </div>
           </div>
+
+          {/* Список материалов */}
+          {materials.length === 0 ? (
+            <div style={{textAlign: 'center', color: '#666', padding: '40px'}}>
+              Материалы не найдены
+            </div>
+          ) : (
+            <div style={{display: 'grid', gap: '15px'}}>
+              {materials.map((material) => (
+                <div key={material.id} style={{
+                  border: '1px solid #E5E7EB',
+                  borderRadius: '8px',
+                  padding: '20px',
+                  background: 'white'
+                }}>
+                  <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '15px'}}>
+                    <div style={{flex: 1}}>
+                      <h3 style={{fontSize: '18px', fontWeight: '600', marginBottom: '5px'}}>
+                        {material.name}
+                      </h3>
+                      {material.description && (
+                        <p style={{color: '#666', marginBottom: '10px'}}>
+                          {material.description}
+                        </p>
+                      )}
+                      <div style={{display: 'grid', gap: '5px', marginBottom: '10px'}}>
+                        <div style={{display: 'flex', gap: '20px', alignItems: 'center'}}>
+                          <span style={{fontSize: '16px', fontWeight: '500'}}>
+                            На складе: <strong style={{color: getStockStatusColor(material)}}>
+                              {material.quantity_in_stock} {material.unit}
+                            </strong>
+                          </span>
+                          <span style={{fontSize: '14px', color: '#666'}}>
+                            Мин. уровень: {material.min_stock_level} {material.unit}
+                          </span>
+                        </div>
+                        <div style={{display: 'flex', gap: '20px', alignItems: 'center'}}>
+                          {material.price_per_unit > 0 && (
+                            <span style={{fontSize: '14px', color: '#666'}}>
+                              Цена: {material.price_per_unit}₽/{material.unit}
+                            </span>
+                          )}
+                          {material.supplier && (
+                            <span style={{fontSize: '14px', color: '#666'}}>
+                              Поставщик: {material.supplier}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <div style={{display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '10px'}}>
+                      <div style={{
+                        background: material.quantity_in_stock <= material.min_stock_level ? '#EF4444' : 
+                                   material.quantity_in_stock <= material.min_stock_level * 1.5 ? '#F59E0B' : '#10B981',
+                        color: 'white',
+                        padding: '5px 12px',
+                        borderRadius: '15px',
+                        fontSize: '14px',
+                        fontWeight: '500'
+                      }}>
+                        {material.quantity_in_stock <= material.min_stock_level ? 'Критично' :
+                         material.quantity_in_stock <= material.min_stock_level * 1.5 ? 'Внимание' : 'Норма'}
+                      </div>
+                      <div style={{display: 'flex', gap: '8px', flexWrap: 'wrap'}}>
+                        <button
+                          onClick={() => handleRestockMaterial(material)}
+                          style={{
+                            background: '#8B5CF6',
+                            color: 'white',
+                            border: 'none',
+                            padding: '6px 12px',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            fontSize: '14px'
+                          }}
+                        >
+                          Пополнить
+                        </button>
+                        <button
+                          onClick={() => handleEditMaterial(material)}
+                          style={{
+                            background: '#3B82F6',
+                            color: 'white',
+                            border: 'none',
+                            padding: '6px 12px',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            fontSize: '14px'
+                          }}
+                        >
+                          Редактировать
+                        </button>
+                        <button
+                          onClick={() => deleteMaterial(material.id)}
+                          style={{
+                            background: '#EF4444',
+                            color: 'white',
+                            border: 'none',
+                            padding: '6px 12px',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            fontSize: '14px'
+                          }}
+                        >
+                          Удалить
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  {!material.is_active && (
+                    <div style={{
+                      background: '#FEE2E2',
+                      border: '1px solid #FECACA',
+                      borderRadius: '4px',
+                      padding: '8px',
+                      color: '#DC2626',
+                      fontSize: '14px'
+                    }}>
+                      ⚠️ Материал неактивен
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
-      {/* Модалка: Управление услугой */}
-      {showServiceModal && (
+      {/* ==================== МОДАЛЬНЫЕ ОКНА ==================== */}
+
+      {/* Модальное окно пользователя */}
+      {showUserModal && (
         <div style={{
           position: 'fixed',
           top: 0,
           left: 0,
-          width: '100%',
-          height: '100%',
+          right: 0,
+          bottom: 0,
           background: 'rgba(0,0,0,0.5)',
           display: 'flex',
           alignItems: 'center',
@@ -632,121 +956,154 @@ const Admin = () => {
         }}>
           <div style={{
             background: 'white',
-            padding: '24px',
             borderRadius: '8px',
-            width: '500px',
+            padding: '30px',
+            maxWidth: '500px',
+            width: '90%',
             maxHeight: '80vh',
-            overflowY: 'auto'
+            overflow: 'auto'
           }}>
-            <h3 style={{ marginBottom: '16px', fontSize: '20px' }}>
-              {editingService ? 'Редактировать услугу' : 'Добавить услугу'}
+            <h3 style={{fontSize: '20px', fontWeight: '600', marginBottom: '20px'}}>
+              {selectedUser ? 'Редактировать пользователя' : 'Создать пользователя'}
             </h3>
-            <form onSubmit={editingService ? updateService : createService}>
-              <div style={{ marginBottom: '12px' }}>
-                <label style={{ display: 'block', marginBottom: '4px' }}>Название *</label>
+
+            <div style={{display: 'grid', gap: '15px', marginBottom: '20px'}}>
+              <div>
+                <label style={{display: 'block', marginBottom: '5px', fontWeight: '500'}}>
+                  Имя *
+                </label>
                 <input
                   type="text"
-                  value={serviceForm.name}
-                  onChange={e => setServiceForm({ ...serviceForm, name: e.target.value })}
-                  required
-                  style={{ width: '100%', padding: '8px', border: '1px solid #ccc', borderRadius: '4px' }}
+                  value={userForm.name}
+                  onChange={(e) => setUserForm({...userForm, name: e.target.value})}
+                  placeholder="Введите имя"
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    border: '1px solid #D1D5DB',
+                    borderRadius: '4px'
+                  }}
                 />
               </div>
-              <div style={{ marginBottom: '12px' }}>
-                <label style={{ display: 'block', marginBottom: '4px' }}>Описание *</label>
-                <textarea
-                  value={serviceForm.description}
-                  onChange={e => setServiceForm({ ...serviceForm, description: e.target.value })}
-                  required
-                  rows="3"
-                  style={{ width: '100%', padding: '8px', border: '1px solid #ccc', borderRadius: '4px' }}
-                />
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
-                <div>
-                  <label style={{ display: 'block', marginBottom: '4px' }}>Цена (₽) *</label>
-                  <input
-                    type="number"
-                    value={serviceForm.price}
-                    onChange={e => setServiceForm({ ...serviceForm, price: e.target.value })}
-                    required
-                    min="0"
-                    style={{ width: '100%', padding: '8px', border: '1px solid #ccc', borderRadius: '4px' }}
-                  />
-                </div>
-                <div>
-                  <label style={{ display: 'block', marginBottom: '4px' }}>Длительность (мин) *</label>
-                  <input
-                    type="number"
-                    value={serviceForm.duration}
-                    onChange={e => setServiceForm({ ...serviceForm, duration: e.target.value })}
-                    required
-                    min="1"
-                    style={{ width: '100%', padding: '8px', border: '1px solid #ccc', borderRadius: '4px' }}
-                  />
-                </div>
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
-                <div>
-                  <label style={{ display: 'block', marginBottom: '4px' }}>Категория *</label>
-                  <input
-                    type="text"
-                    value={serviceForm.category}
-                    onChange={e => setServiceForm({ ...serviceForm, category: e.target.value })}
-                    required
-                    placeholder="wrap, maintenance и т.д."
-                    style={{ width: '100%', padding: '8px', border: '1px solid #ccc', borderRadius: '4px' }}
-                  />
-                </div>
-                <div>
-                  <label style={{ display: 'block', marginBottom: '4px' }}>Подготовка (дн.)</label>
-                  <input
-                    type="number"
-                    value={serviceForm.preparation_days}
-                    onChange={e => setServiceForm({ ...serviceForm, preparation_days: parseInt(e.target.value) || 0 })}
-                    min="0"
-                    style={{ width: '100%', padding: '8px', border: '1px solid #ccc', borderRadius: '4px' }}
-                  />
-                </div>
-              </div>
-              <div style={{ marginBottom: '20px' }}>
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={serviceForm.is_active}
-                    onChange={e => setServiceForm({ ...serviceForm, is_active: e.target.checked })}
-                  />
-                  Активна
+
+              <div>
+                <label style={{display: 'block', marginBottom: '5px', fontWeight: '500'}}>
+                  Email *
                 </label>
+                <input
+                  type="email"
+                  value={userForm.email}
+                  onChange={(e) => setUserForm({...userForm, email: e.target.value})}
+                  placeholder="Введите email"
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    border: '1px solid #D1D5DB',
+                    borderRadius: '4px'
+                  }}
+                />
               </div>
-              <div style={{ display: 'flex', gap: '10px' }}>
-                <button
-                  type="submit"
-                  style={{ background: '#2563eb', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '4px', cursor: 'pointer' }}
-                >
-                  {editingService ? 'Сохранить' : 'Создать'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowServiceModal(false)}
-                  style={{ background: '#ccc', border: 'none', padding: '10px 20px', borderRadius: '4px', cursor: 'pointer' }}
-                >
-                  Отмена
-                </button>
+
+              <div>
+                <label style={{display: 'block', marginBottom: '5px', fontWeight: '500'}}>
+                  Телефон
+                </label>
+                <input
+                  type="tel"
+                  value={userForm.phone}
+                  onChange={(e) => setUserForm({...userForm, phone: e.target.value})}
+                  placeholder="Введите телефон"
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    border: '1px solid #D1D5DB',
+                    borderRadius: '4px'
+                  }}
+                />
               </div>
-            </form>
+
+              <div>
+                <label style={{display: 'block', marginBottom: '5px', fontWeight: '500'}}>
+                  Пароль {selectedUser ? '(оставьте пустым для сохранения текущего)' : '*'}
+                </label>
+                <input
+                  type="password"
+                  value={userForm.password}
+                  onChange={(e) => setUserForm({...userForm, password: e.target.value})}
+                  placeholder={selectedUser ? 'Новый пароль (необязательно)' : 'Введите пароль'}
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    border: '1px solid #D1D5DB',
+                    borderRadius: '4px'
+                  }}
+                />
+              </div>
+
+              <div>
+                <label style={{display: 'block', marginBottom: '5px', fontWeight: '500'}}>
+                  Роль *
+                </label>
+                <select
+                  value={userForm.role}
+                  onChange={(e) => setUserForm({...userForm, role: e.target.value})}
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    border: '1px solid #D1D5DB',
+                    borderRadius: '4px'
+                  }}
+                >
+                  <option value="client">Клиент</option>
+                  <option value="executor">Исполнитель</option>
+                  <option value="admin">Администратор</option>
+                </select>
+              </div>
+            </div>
+
+            <div style={{display: 'flex', gap: '10px', justifyContent: 'flex-end'}}>
+              <button
+                onClick={() => setShowUserModal(false)}
+                style={{
+                  background: '#6B7280',
+                  color: 'white',
+                  border: 'none',
+                  padding: '10px 20px',
+                  borderRadius: '6px',
+                  cursor: 'pointer'
+                }}
+              >
+                Отменить
+              </button>
+              <button
+                onClick={submitUserForm}
+                disabled={!userForm.name || !userForm.email || (!selectedUser && !userForm.password)}
+                style={{
+                  background: (!userForm.name || !userForm.email || (!selectedUser && !userForm.password)) 
+                    ? '#9CA3AF' : '#10B981',
+                  color: 'white',
+                  border: 'none',
+                  padding: '10px 20px',
+                  borderRadius: '6px',
+                  cursor: (!userForm.name || !userForm.email || (!selectedUser && !userForm.password)) 
+                    ? 'not-allowed' : 'pointer'
+                }}
+              >
+                {selectedUser ? 'Сохранить' : 'Создать'}
+              </button>
+            </div>
           </div>
         </div>
       )}
 
-      {/* Модалка: Блокировка даты */}
-      {showBlockDateModal && (
+      {/* Модальное окно редактирования заказа */}
+      {showAppointmentModal && selectedAppointment && (
         <div style={{
           position: 'fixed',
           top: 0,
           left: 0,
-          width: '100%',
-          height: '100%',
+          right: 0,
+          bottom: 0,
           background: 'rgba(0,0,0,0.5)',
           display: 'flex',
           alignItems: 'center',
@@ -755,48 +1112,513 @@ const Admin = () => {
         }}>
           <div style={{
             background: 'white',
-            padding: '24px',
             borderRadius: '8px',
-            width: '400px'
+            padding: '30px',
+            maxWidth: '500px',
+            width: '90%',
+            maxHeight: '80vh',
+            overflow: 'auto'
           }}>
-            <h3 style={{ marginBottom: '16px' }}>Заблокировать дату</h3>
-            <form onSubmit={blockDate}>
-              <div style={{ marginBottom: '12px' }}>
-                <label style={{ display: 'block', marginBottom: '4px' }}>Дата *</label>
-                <input
-                  type="date"
-                  value={blockDateForm.date}
-                  onChange={e => setBlockDateForm({ ...blockDateForm, date: e.target.value })}
-                  min={new Date().toISOString().split('T')[0]}
-                  required
-                  style={{ width: '100%', padding: '8px', border: '1px solid #ccc', borderRadius: '4px' }}
-                />
+            <h3 style={{fontSize: '20px', fontWeight: '600', marginBottom: '20px'}}>
+              Редактировать заказ
+            </h3>
+
+            <div style={{marginBottom: '20px', padding: '15px', background: '#F3F4F6', borderRadius: '6px'}}>
+              <h4 style={{fontWeight: '600', marginBottom: '5px'}}>Заказ:</h4>
+              <p>{selectedAppointment.service_name} - {selectedAppointment.user_name}</p>
+              <p>Текущий статус: {getStatusText(selectedAppointment.status)}</p>
+            </div>
+
+            <div style={{display: 'grid', gap: '15px', marginBottom: '20px'}}>
+              <div>
+                <label style={{display: 'block', marginBottom: '5px', fontWeight: '500'}}>
+                  Исполнитель:
+                </label>
+                <select
+                  value={appointmentForm.executor_id}
+                  onChange={(e) => setAppointmentForm({...appointmentForm, executor_id: e.target.value})}
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    border: '1px solid #D1D5DB',
+                    borderRadius: '4px'
+                  }}
+                >
+                  <option value="">Не назначен</option>
+                  {users.filter(u => u.role === 'executor').map(executor => (
+                    <option key={executor.id} value={executor.id}>
+                      {executor.name} ({executor.email})
+                    </option>
+                  ))}
+                </select>
               </div>
-              <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', marginBottom: '4px' }}>Причина</label>
+
+              <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px'}}>
+                <div>
+                  <label style={{display: 'block', marginBottom: '5px', fontWeight: '500'}}>
+                    Дата:
+                  </label>
+                  <input
+                    type="date"
+                    value={appointmentForm.appointment_date}
+                    onChange={(e) => setAppointmentForm({...appointmentForm, appointment_date: e.target.value})}
+                    style={{
+                      width: '100%',
+                      padding: '10px',
+                      border: '1px solid #D1D5DB',
+                      borderRadius: '4px'
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{display: 'block', marginBottom: '5px', fontWeight: '500'}}>
+                    Время:
+                  </label>
+                  <input
+                    type="time"
+                    value={appointmentForm.appointment_time}
+                    onChange={(e) => setAppointmentForm({...appointmentForm, appointment_time: e.target.value})}
+                    style={{
+                      width: '100%',
+                      padding: '10px',
+                      border: '1px solid #D1D5DB',
+                      borderRadius: '4px'
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label style={{display: 'block', marginBottom: '5px', fontWeight: '500'}}>
+                  Статус:
+                </label>
+                <select
+                  value={appointmentForm.status}
+                  onChange={(e) => setAppointmentForm({...appointmentForm, status: e.target.value})}
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    border: '1px solid #D1D5DB',
+                    borderRadius: '4px'
+                  }}
+                >
+                  <option value="booked">Забронировано</option>
+                  <option value="in_progress">В работе</option>
+                  <option value="completed">Выполнено</option>
+                  <option value="cancelled">Отменено</option>
+                </select>
+              </div>
+
+              <div>
+                <label style={{display: 'block', marginBottom: '5px', fontWeight: '500'}}>
+                  Заметки:
+                </label>
                 <textarea
-                  value={blockDateForm.reason}
-                  onChange={e => setBlockDateForm({ ...blockDateForm, reason: e.target.value })}
-                  rows="2"
-                  style={{ width: '100%', padding: '8px', border: '1px solid #ccc', borderRadius: '4px' }}
+                  value={appointmentForm.notes}
+                  onChange={(e) => setAppointmentForm({...appointmentForm, notes: e.target.value})}
+                  placeholder="Дополнительные заметки к заказу..."
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    border: '1px solid #D1D5DB',
+                    borderRadius: '4px',
+                    minHeight: '80px',
+                    resize: 'vertical'
+                  }}
                 />
               </div>
-              <div style={{ display: 'flex', gap: '10px' }}>
-                <button
-                  type="submit"
-                  style={{ background: '#dc2626', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '4px', cursor: 'pointer' }}
-                >
-                  Заблокировать
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowBlockDateModal(false)}
-                  style={{ background: '#ccc', border: 'none', padding: '10px 20px', borderRadius: '4px', cursor: 'pointer' }}
-                >
-                  Отмена
-                </button>
+            </div>
+
+            <div style={{display: 'flex', gap: '10px', justifyContent: 'flex-end'}}>
+              <button
+                onClick={() => setShowAppointmentModal(false)}
+                style={{
+                  background: '#6B7280',
+                  color: 'white',
+                  border: 'none',
+                  padding: '10px 20px',
+                  borderRadius: '6px',
+                  cursor: 'pointer'
+                }}
+              >
+                Отменить
+              </button>
+              <button
+                onClick={submitAppointmentForm}
+                style={{
+                  background: '#10B981',
+                  color: 'white',
+                  border: 'none',
+                  padding: '10px 20px',
+                  borderRadius: '6px',
+                  cursor: 'pointer'
+                }}
+              >
+                Сохранить
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Модальное окно материала */}
+      {showMaterialModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            background: 'white',
+            borderRadius: '8px',
+            padding: '30px',
+            maxWidth: '600px',
+            width: '90%',
+            maxHeight: '80vh',
+            overflow: 'auto'
+          }}>
+            <h3 style={{fontSize: '20px', fontWeight: '600', marginBottom: '20px'}}>
+              {selectedMaterial ? 'Редактировать материал' : 'Создать материал'}
+            </h3>
+
+            <div style={{display: 'grid', gap: '15px', marginBottom: '20px'}}>
+              <div>
+                <label style={{display: 'block', marginBottom: '5px', fontWeight: '500'}}>
+                  Название *
+                </label>
+                <input
+                  type="text"
+                  value={materialForm.name}
+                  onChange={(e) => setMaterialForm({...materialForm, name: e.target.value})}
+                  placeholder="Введите название материала"
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    border: '1px solid #D1D5DB',
+                    borderRadius: '4px'
+                  }}
+                />
               </div>
-            </form>
+
+              <div>
+                <label style={{display: 'block', marginBottom: '5px', fontWeight: '500'}}>
+                  Описание
+                </label>
+                <textarea
+                  value={materialForm.description}
+                  onChange={(e) => setMaterialForm({...materialForm, description: e.target.value})}
+                  placeholder="Описание материала..."
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    border: '1px solid #D1D5DB',
+                    borderRadius: '4px',
+                    minHeight: '60px',
+                    resize: 'vertical'
+                  }}
+                />
+              </div>
+
+              <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px'}}>
+                <div>
+                  <label style={{display: 'block', marginBottom: '5px', fontWeight: '500'}}>
+                    Единица измерения *
+                  </label>
+                  <input
+                    type="text"
+                    value={materialForm.unit}
+                    onChange={(e) => setMaterialForm({...materialForm, unit: e.target.value})}
+                    placeholder="шт, л, кг, м2..."
+                    style={{
+                      width: '100%',
+                      padding: '10px',
+                      border: '1px solid #D1D5DB',
+                      borderRadius: '4px'
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{display: 'block', marginBottom: '5px', fontWeight: '500'}}>
+                    Количество на складе
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={materialForm.quantity_in_stock}
+                    onChange={(e) => setMaterialForm({...materialForm, quantity_in_stock: parseFloat(e.target.value) || 0})}
+                    style={{
+                      width: '100%',
+                      padding: '10px',
+                      border: '1px solid #D1D5DB',
+                      borderRadius: '4px'
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px'}}>
+                <div>
+                  <label style={{display: 'block', marginBottom: '5px', fontWeight: '500'}}>
+                    Минимальный уровень
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={materialForm.min_stock_level}
+                    onChange={(e) => setMaterialForm({...materialForm, min_stock_level: parseFloat(e.target.value) || 0})}
+                    style={{
+                      width: '100%',
+                      padding: '10px',
+                      border: '1px solid #D1D5DB',
+                      borderRadius: '4px'
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{display: 'block', marginBottom: '5px', fontWeight: '500'}}>
+                    Цена за единицу (₽)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={materialForm.price_per_unit}
+                    onChange={(e) => setMaterialForm({...materialForm, price_per_unit: parseFloat(e.target.value) || 0})}
+                    style={{
+                      width: '100%',
+                      padding: '10px',
+                      border: '1px solid #D1D5DB',
+                      borderRadius: '4px'
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label style={{display: 'block', marginBottom: '5px', fontWeight: '500'}}>
+                  Поставщик
+                </label>
+                <input
+                  type="text"
+                  value={materialForm.supplier}
+                  onChange={(e) => setMaterialForm({...materialForm, supplier: e.target.value})}
+                  placeholder="Название поставщика..."
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    border: '1px solid #D1D5DB',
+                    borderRadius: '4px'
+                  }}
+                />
+              </div>
+
+              <div>
+                <label style={{display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer'}}>
+                  <input
+                    type="checkbox"
+                    checked={materialForm.is_active}
+                    onChange={(e) => setMaterialForm({...materialForm, is_active: e.target.checked})}
+                  />
+                  Материал активен
+                </label>
+              </div>
+            </div>
+
+            <div style={{display: 'flex', gap: '10px', justifyContent: 'flex-end'}}>
+              <button
+                onClick={() => setShowMaterialModal(false)}
+                style={{
+                  background: '#6B7280',
+                  color: 'white',
+                  border: 'none',
+                  padding: '10px 20px',
+                  borderRadius: '6px',
+                  cursor: 'pointer'
+                }}
+              >
+                Отменить
+              </button>
+              <button
+                onClick={submitMaterialForm}
+                disabled={!materialForm.name || !materialForm.unit}
+                style={{
+                  background: (!materialForm.name || !materialForm.unit) ? '#9CA3AF' : '#10B981',
+                  color: 'white',
+                  border: 'none',
+                  padding: '10px 20px',
+                  borderRadius: '6px',
+                  cursor: (!materialForm.name || !materialForm.unit) ? 'not-allowed' : 'pointer'
+                }}
+              >
+                {selectedMaterial ? 'Сохранить' : 'Создать'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Модальное окно пополнения склада */}
+      {showRestockModal && selectedMaterial && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            background: 'white',
+            borderRadius: '8px',
+            padding: '30px',
+            maxWidth: '500px',
+            width: '90%',
+            maxHeight: '80vh',
+            overflow: 'auto'
+          }}>
+            <h3 style={{fontSize: '20px', fontWeight: '600', marginBottom: '20px'}}>
+              Пополнить склад
+            </h3>
+
+            <div style={{marginBottom: '20px', padding: '15px', background: '#F3F4F6', borderRadius: '6px'}}>
+              <h4 style={{fontWeight: '600', marginBottom: '5px'}}>Материал:</h4>
+              <p><strong>{selectedMaterial.name}</strong></p>
+              <p>Текущий запас: <strong>{selectedMaterial.quantity_in_stock} {selectedMaterial.unit}</strong></p>
+              <p>Минимальный уровень: {selectedMaterial.min_stock_level} {selectedMaterial.unit}</p>
+            </div>
+
+            <div style={{display: 'grid', gap: '15px', marginBottom: '20px'}}>
+              <div>
+                <label style={{display: 'block', marginBottom: '5px', fontWeight: '500'}}>
+                  Количество для пополнения *
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={restockForm.quantity}
+                  onChange={(e) => setRestockForm({...restockForm, quantity: parseFloat(e.target.value) || 0})}
+                  placeholder="Введите количество..."
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    border: '1px solid #D1D5DB',
+                    borderRadius: '4px'
+                  }}
+                />
+              </div>
+
+              <div>
+                <label style={{display: 'block', marginBottom: '5px', fontWeight: '500'}}>
+                  Стоимость за единицу (₽)
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={restockForm.cost_per_unit}
+                  onChange={(e) => setRestockForm({...restockForm, cost_per_unit: parseFloat(e.target.value) || 0})}
+                  placeholder="Цена покупки за единицу..."
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    border: '1px solid #D1D5DB',
+                    borderRadius: '4px'
+                  }}
+                />
+              </div>
+
+              <div>
+                <label style={{display: 'block', marginBottom: '5px', fontWeight: '500'}}>
+                  Информация о поставщике
+                </label>
+                <input
+                  type="text"
+                  value={restockForm.supplier_info}
+                  onChange={(e) => setRestockForm({...restockForm, supplier_info: e.target.value})}
+                  placeholder="Название поставщика или заметки о закупке..."
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    border: '1px solid #D1D5DB',
+                    borderRadius: '4px'
+                  }}
+                />
+              </div>
+
+              {/* Предварительный расчет */}
+              {restockForm.quantity > 0 && (
+                <div style={{
+                  background: '#F0F9FF',
+                  border: '1px solid #BAE6FD',
+                  borderRadius: '6px',
+                  padding: '15px'
+                }}>
+                  <h4 style={{fontWeight: '600', marginBottom: '10px', color: '#0369A1'}}>
+                    Итоги пополнения:
+                  </h4>
+                  <div style={{display: 'grid', gap: '5px', fontSize: '14px'}}>
+                    <p>
+                      <strong>Добавляется:</strong> {restockForm.quantity} {selectedMaterial.unit}
+                    </p>
+                    <p>
+                      <strong>Станет на складе:</strong> {(selectedMaterial.quantity_in_stock + restockForm.quantity).toFixed(2)} {selectedMaterial.unit}
+                    </p>
+                    {restockForm.cost_per_unit > 0 && (
+                      <p>
+                        <strong>Общая стоимость:</strong> {(restockForm.quantity * restockForm.cost_per_unit).toFixed(2)}₽
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div style={{display: 'flex', gap: '10px', justifyContent: 'flex-end'}}>
+              <button
+                onClick={() => setShowRestockModal(false)}
+                style={{
+                  background: '#6B7280',
+                  color: 'white',
+                  border: 'none',
+                  padding: '10px 20px',
+                  borderRadius: '6px',
+                  cursor: 'pointer'
+                }}
+              >
+                Отменить
+              </button>
+              <button
+                onClick={submitRestockForm}
+                disabled={restockForm.quantity <= 0}
+                style={{
+                  background: restockForm.quantity <= 0 ? '#9CA3AF' : '#10B981',
+                  color: 'white',
+                  border: 'none',
+                  padding: '10px 20px',
+                  borderRadius: '6px',
+                  cursor: restockForm.quantity <= 0 ? 'not-allowed' : 'pointer'
+                }}
+              >
+                Пополнить склад
+              </button>
+            </div>
           </div>
         </div>
       )}
