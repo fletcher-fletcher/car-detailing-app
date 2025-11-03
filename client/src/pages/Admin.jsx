@@ -41,6 +41,10 @@ const [materialFilters, setMaterialFilters] = useState({
   const [appointments, setAppointments] = useState([]);
   const [services, setServices] = useState([]);
   const [executors, setExecutors] = useState([]);
+  const [materials, setMaterials] = useState([]);
+  const [selectedMaterial, setSelectedMaterial] = useState(null);
+  const [showMaterialModal, setShowMaterialModal] = useState(false);
+  const [showRestockModal, setShowRestockModal] = useState(false);
 
   // Модальные окна
   const [showUserModal, setShowUserModal] = useState(false);
@@ -78,11 +82,32 @@ const [materialFilters, setMaterialFilters] = useState({
     status: ''
   });
 
+  const [materialForm, setMaterialForm] = useState({
+    name: '',
+    description: '',
+    unit: '',
+    quantity_in_stock: 0,
+    min_stock_level: 0,
+    price_per_unit: 0,
+    supplier: '',
+    is_active: true
+  });
+
+  const [restockForm, setRestockForm] = useState({
+    quantity: 0,
+    cost_per_unit: 0,
+    supplier_info: '',
+    notes: ''
+  });
+
   // Фильтры
   const [userFilters, setUserFilters] = useState({ role: '', search: '' });
   const [serviceFilters, setServiceFilters] = useState({ search: '', active_only: false });
   const [appointmentFilters, setAppointmentFilters] = useState({ status: '', executor_id: '' });
-
+  const [materialFilters, setMaterialFilters] = useState({
+    search: '',
+    low_stock_only: false
+  });
   useEffect(() => {
     checkAdminAccess();
   }, []);
@@ -100,6 +125,9 @@ const [materialFilters, setMaterialFilters] = useState({
           fetchAppointments();
           fetchExecutors();
           break;
+        case 'materials':  // ← ДОБАВЬТЕ ЭТУ СТРОКУ
+          fetchMaterials(); // ← И ЭТУ
+          break;           // ← И ЭТУ
       }
     }
   }, [activeTab, loading]);
