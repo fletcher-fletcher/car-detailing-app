@@ -1,3 +1,4 @@
+// server/middleware/auth.js
 import jwt from 'jsonwebtoken';
 
 const authenticateToken = (req, res, next) => {
@@ -45,8 +46,16 @@ const authenticateToken = (req, res, next) => {
       console.log('❌ Token verification failed:', err.message);
       return res.status(403).json({ message: 'Неверный токен' });
     }
+    
     console.log('✅ Token verified, user:', user);
-    req.user = user;
+    
+    // ИСПРАВЛЕНИЕ: Убеждаемся, что req.user.id существует
+    req.user = {
+      ...user,
+      id: user.userId || user.id  // используем userId из токена как id
+    };
+    
+    console.log('✅ Set req.user:', req.user);
     next();
   });
 };
