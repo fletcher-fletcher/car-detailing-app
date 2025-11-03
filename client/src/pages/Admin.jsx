@@ -6,11 +6,7 @@ const Admin = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('users');
   const [loading, setLoading] = useState(true);
-  const [materials, setMaterials] = useState([]);
-  const [selectedMaterial, setSelectedMaterial] = useState(null);
-  const [showMaterialModal, setShowMaterialModal] = useState(false);
-  const [showRestockModal, setShowRestockModal] = useState(false);
-
+ 
   // Формы для материалов
 const [materialForm, setMaterialForm] = useState({
   name: '',
@@ -261,6 +257,10 @@ const getStockStatusText = (material) => {
   if (material.quantity_in_stock <= material.min_stock_level) return 'Критично низкий';
   if (material.quantity_in_stock <= material.min_stock_level * 1.5) return 'Требует внимания';
   return 'В норме';
+};
+
+const handleDeleteMaterial = (materialId) => {
+  deleteMaterial(materialId);
 };
   
   // ==================== ПОЛЬЗОВАТЕЛИ ====================
@@ -1711,7 +1711,369 @@ const getStockStatusText = (material) => {
           </div>
         </div>
       )}
-    </div>
+          {/* Модальное окно создания/редактирования материала */}
+      {showMaterialModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            background: 'white',
+            borderRadius: '8px',
+            padding: '30px',
+            maxWidth: '600px',
+            width: '90%',
+            maxHeight: '80vh',
+            overflow: 'auto'
+          }}>
+            <h3 style={{fontSize: '20px', fontWeight: '600', marginBottom: '20px'}}>
+              {selectedMaterial ? 'Редактировать материал' : 'Создать материал'}
+            </h3>
+            
+            <div style={{display: 'grid', gap: '15px'}}>
+              <div>
+                <label style={{display: 'block', marginBottom: '5px', fontWeight: '500'}}>
+                  Название *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={materialForm.name}
+                  onChange={(e) => setMaterialForm({...materialForm, name: e.target.value})}
+                  style={{
+                    width: '100%',
+                    padding: '8px',
+                    border: '1px solid #D1D5DB',
+                    borderRadius: '4px'
+                  }}
+                  placeholder="Например: Автошампунь"
+                />
+              </div>
+
+              <div>
+                <label style={{display: 'block', marginBottom: '5px', fontWeight: '500'}}>
+                  Описание
+                </label>
+                <textarea
+                  value={materialForm.description}
+                  onChange={(e) => setMaterialForm({...materialForm, description: e.target.value})}
+                  style={{
+                    width: '100%',
+                    padding: '8px',
+                    border: '1px solid #D1D5DB',
+                    borderRadius: '4px',
+                    minHeight: '80px'
+                  }}
+                  placeholder="Подробное описание материала..."
+                />
+              </div>
+
+              <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px'}}>
+                <div>
+                  <label style={{display: 'block', marginBottom: '5px', fontWeight: '500'}}>
+                    Единица измерения *
+                  </label>
+                  <select
+                    required
+                    value={materialForm.unit}
+                    onChange={(e) => setMaterialForm({...materialForm, unit: e.target.value})}
+                    style={{
+                      width: '100%',
+                      padding: '8px',
+                      border: '1px solid #D1D5DB',
+                      borderRadius: '4px'
+                    }}
+                  >
+                    <option value="">Выберите единицу</option>
+                    <option value="шт">Штуки (шт)</option>
+                    <option value="л">Литры (л)</option>
+                    <option value="мл">Миллилитры (мл)</option>
+                    <option value="кг">Килограммы (кг)</option>
+                    <option value="г">Граммы (г)</option>
+                    <option value="м">Метры (м)</option>
+                    <option value="см">Сантиметры (см)</option>
+                    <option value="м2">Кв. метры (м²)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{display: 'block', marginBottom: '5px', fontWeight: '500'}}>
+                    Количество на складе
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={materialForm.quantity_in_stock}
+                    onChange={(e) => setMaterialForm({...materialForm, quantity_in_stock: parseFloat(e.target.value) || 0})}
+                    style={{
+                      width: '100%',
+                      padding: '8px',
+                      border: '1px solid #D1D5DB',
+                      borderRadius: '4px'
+                    }}
+                    placeholder="0"
+                  />
+                </div>
+              </div>
+
+              <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px'}}>
+                <div>
+                  <label style={{display: 'block', marginBottom: '5px', fontWeight: '500'}}>
+                    Минимальный уровень запаса
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={materialForm.min_stock_level}
+                    onChange={(e) => setMaterialForm({...materialForm, min_stock_level: parseFloat(e.target.value) || 0})}
+                    style={{
+                      width: '100%',
+                      padding: '8px',
+                      border: '1px solid #D1D5DB',
+                      borderRadius: '4px'
+                    }}
+                    placeholder="0"
+                  />
+                </div>
+
+                <div>
+                  <label style={{display: 'block', marginBottom: '5px', fontWeight: '500'}}>
+                    Цена за единицу (₽)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={materialForm.price_per_unit}
+                    onChange={(e) => setMaterialForm({...materialForm, price_per_unit: parseFloat(e.target.value) || 0})}
+                    style={{
+                      width: '100%',
+                      padding: '8px',
+                      border: '1px solid #D1D5DB',
+                      borderRadius: '4px'
+                    }}
+                    placeholder="0.00"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label style={{display: 'block', marginBottom: '5px', fontWeight: '500'}}>
+                  Поставщик
+                </label>
+                <input
+                  type="text"
+                  value={materialForm.supplier}
+                  onChange={(e) => setMaterialForm({...materialForm, supplier: e.target.value})}
+                  style={{
+                    width: '100%',
+                    padding: '8px',
+                    border: '1px solid #D1D5DB',
+                    borderRadius: '4px'
+                  }}
+                  placeholder="Название компании-поставщика"
+                />
+              </div>
+
+              <div>
+                <label style={{display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer'}}>
+                  <input
+                    type="checkbox"
+                    checked={materialForm.is_active}
+                    onChange={(e) => setMaterialForm({...materialForm, is_active: e.target.checked})}
+                    style={{cursor: 'pointer'}}
+                  />
+                  <span style={{fontWeight: '500'}}>Активный материал</span>
+                </label>
+              </div>
+            </div>
+
+            <div style={{display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '25px'}}>
+              <button
+                onClick={() => setShowMaterialModal(false)}
+                style={{
+                  background: '#6B7280',
+                  color: 'white',
+                  border: 'none',
+                  padding: '10px 20px',
+                  borderRadius: '6px',
+                  cursor: 'pointer'
+                }}
+              >
+                Отменить
+              </button>
+              <button
+                onClick={submitMaterialForm}
+                disabled={!materialForm.name || !materialForm.unit}
+                style={{
+                  background: (!materialForm.name || !materialForm.unit) ? '#9CA3AF' : '#10B981',
+                  color: 'white',
+                  border: 'none',
+                  padding: '10px 20px',
+                  borderRadius: '6px',
+                  cursor: (!materialForm.name || !materialForm.unit) ? 'not-allowed' : 'pointer'
+                }}
+              >
+                {selectedMaterial ? 'Сохранить' : 'Создать'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Модальное окно пополнения склада */}
+      {showRestockModal && selectedMaterial && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            background: 'white',
+            borderRadius: '8px',
+            padding: '30px',
+            maxWidth: '500px',
+            width: '90%'
+          }}>
+            <h3 style={{fontSize: '20px', fontWeight: '600', marginBottom: '20px'}}>
+              Пополнить склад: {selectedMaterial.name}
+            </h3>
+
+            <div style={{
+              background: '#F3F4F6',
+              padding: '15px',
+              borderRadius: '6px',
+              marginBottom: '20px'
+            }}>
+              <p><strong>Текущий остаток:</strong> {selectedMaterial.quantity_in_stock} {selectedMaterial.unit}</p>
+              <p><strong>Минимальный уровень:</strong> {selectedMaterial.min_stock_level} {selectedMaterial.unit}</p>
+            </div>
+            
+            <div style={{display: 'grid', gap: '15px'}}>
+              <div>
+                <label style={{display: 'block', marginBottom: '5px', fontWeight: '500'}}>
+                  Количество для пополнения *
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0.01"
+                  value={restockForm.quantity}
+                  onChange={(e) => setRestockForm({...restockForm, quantity: parseFloat(e.target.value) || 0})}
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    border: '1px solid #D1D5DB',
+                    borderRadius: '4px'
+                  }}
+                  placeholder="Введите количество"
+                />
+              </div>
+
+              <div>
+                <label style={{display: 'block', marginBottom: '5px', fontWeight: '500'}}>
+                  Стоимость за единицу (₽)
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={restockForm.cost_per_unit}
+                  onChange={(e) => setRestockForm({...restockForm, cost_per_unit: parseFloat(e.target.value) || 0})}
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    border: '1px solid #D1D5DB',
+                    borderRadius: '4px'
+                  }}
+                  placeholder="0.00"
+                />
+              </div>
+
+              <div>
+                <label style={{display: 'block', marginBottom: '5px', fontWeight: '500'}}>
+                  Информация о поставщике
+                </label>
+                <input
+                  type="text"
+                  value={restockForm.supplier_info}
+                  onChange={(e) => setRestockForm({...restockForm, supplier_info: e.target.value})}
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    border: '1px solid #D1D5DB',
+                    borderRadius: '4px'
+                  }}
+                  placeholder="Название компании, контакты"
+                />
+              </div>
+
+              {restockForm.quantity > 0 && restockForm.cost_per_unit > 0 && (
+                <div style={{
+                  background: '#EBF8FF',
+                  border: '1px solid #3182CE',
+                  borderRadius: '6px',
+                  padding: '12px'
+                }}>
+                  <p style={{color: '#2B6CB0', fontWeight: '500'}}>
+                    💰 Общая стоимость: {(restockForm.quantity * restockForm.cost_per_unit).toFixed(2)}₽
+                  </p>
+                  <p style={{color: '#2B6CB0', fontSize: '14px'}}>
+                    📦 Остаток после пополнения: {selectedMaterial.quantity_in_stock + restockForm.quantity} {selectedMaterial.unit}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div style={{display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '25px'}}>
+              <button
+                onClick={() => setShowRestockModal(false)}
+                style={{
+                  background: '#6B7280',
+                  color: 'white',
+                  border: 'none',
+                  padding: '10px 20px',
+                  borderRadius: '6px',
+                  cursor: 'pointer'
+                }}
+              >
+                Отменить
+              </button>
+                            <button
+                onClick={submitRestockForm}
+                disabled={restockForm.quantity <= 0}
+                style={{
+                  background: restockForm.quantity <= 0 ? '#9CA3AF' : '#10B981',
+                  color: 'white',
+                  border: 'none',
+                  padding: '10px 20px',
+                  borderRadius: '6px',
+                  cursor: restockForm.quantity <= 0 ? 'not-allowed' : 'pointer'
+                }}
+              >
+                Пополнить склад
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
   );
 };
 
