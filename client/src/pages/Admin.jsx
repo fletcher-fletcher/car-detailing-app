@@ -1040,6 +1040,154 @@ const getStockStatusText = (material) => {
         </div>
       )}
 
+      {/* Вкладка "Материалы" */}
+{activeTab === 'materials' && (
+  <div>
+    <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px'}}>
+      <h2 style={{fontSize: '22px', fontWeight: '600'}}>
+        Управление материалами
+      </h2>
+      <button
+        onClick={handleCreateMaterial}
+        style={{
+          background: '#10B981',
+          color: 'white',
+          border: 'none',
+          padding: '10px 20px',
+          borderRadius: '6px',
+          cursor: 'pointer'
+        }}
+      >
+        + Добавить материал
+      </button>
+    </div>
+
+    {/* Фильтры */}
+    <div style={{
+      display: 'flex',
+      gap: '15px',
+      marginBottom: '20px',
+      padding: '15px',
+      background: '#F9FAFB',
+      borderRadius: '8px'
+    }}>
+      <input
+        type="text"
+        placeholder="Поиск материалов..."
+        value={materialFilters.search}
+        onChange={(e) => {
+          setMaterialFilters({...materialFilters, search: e.target.value});
+          setTimeout(() => fetchMaterials(), 500);
+        }}
+        style={{
+          padding: '8px',
+          border: '1px solid #D1D5DB',
+          borderRadius: '4px',
+          flex: 1
+        }}
+      />
+      <label style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
+        <input
+          type="checkbox"
+          checked={materialFilters.low_stock_only}
+          onChange={(e) => {
+            setMaterialFilters({...materialFilters, low_stock_only: e.target.checked});
+            fetchMaterials();
+          }}
+        />
+        Только с низкими запасами
+      </label>
+    </div>
+
+    {/* Список материалов */}
+    <div style={{display: 'grid', gap: '15px'}}>
+      {materials.map((material) => (
+        <div key={material.id} style={{
+          border: '1px solid #E5E7EB',
+          borderRadius: '8px',
+          padding: '20px',
+          background: 'white'
+        }}>
+          <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'start'}}>
+            <div style={{flex: 1}}>
+              <h3 style={{fontSize: '18px', fontWeight: '600', marginBottom: '5px'}}>
+                {material.name}
+              </h3>
+              {material.description && (
+                <p style={{color: '#666', marginBottom: '10px'}}>
+                  {material.description}
+                </p>
+              )}
+              <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '10px', fontSize: '14px'}}>
+                <span><strong>Остаток:</strong> {material.quantity_in_stock} {material.unit}</span>
+                <span><strong>Мин. уровень:</strong> {material.min_stock_level} {material.unit}</span>
+                <span><strong>Цена:</strong> {material.price_per_unit}₽/{material.unit}</span>
+                {material.supplier && <span><strong>Поставщик:</strong> {material.supplier}</span>}
+              </div>
+            </div>
+            <div style={{display: 'flex', flexDirection: 'column', alignItems: 'end', gap: '10px'}}>
+              <div style={{
+                background: getStockStatusColor(material),
+                color: 'white',
+                padding: '5px 12px',
+                borderRadius: '15px',
+                fontSize: '12px',
+                fontWeight: '500'
+              }}>
+                {getStockStatusText(material)}
+              </div>
+              <div style={{display: 'flex', gap: '8px'}}>
+                <button
+                  onClick={() => handleRestockMaterial(material)}
+                  style={{
+                    background: '#3B82F6',
+                    color: 'white',
+                    border: 'none',
+                    padding: '6px 12px',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    fontSize: '12px'
+                  }}
+                >
+                  Пополнить
+                </button>
+                <button
+                  onClick={() => handleEditMaterial(material)}
+                  style={{
+                    background: '#F59E0B',
+                    color: 'white',
+                    border: 'none',
+                    padding: '6px 12px',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    fontSize: '12px'
+                  }}
+                >
+                  Редактировать
+                </button>
+                <button
+                  onClick={() => handleDeleteMaterial(material.id)}
+                  style={{
+                    background: '#EF4444',
+                    color: 'white',
+                    border: 'none',
+                    padding: '6px 12px',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    fontSize: '12px'
+                  }}
+                >
+                  Удалить
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+)}
+
       {/* ==================== МОДАЛЬНЫЕ ОКНА ==================== */}
 
       {/* Модальное окно для создания/редактирования пользователя */}
