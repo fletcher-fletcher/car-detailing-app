@@ -6,6 +6,35 @@ const Admin = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('users');
   const [loading, setLoading] = useState(true);
+  const [materials, setMaterials] = useState([]);
+  const [selectedMaterial, setSelectedMaterial] = useState(null);
+  const [showMaterialModal, setShowMaterialModal] = useState(false);
+  const [showRestockModal, setShowRestockModal] = useState(false);
+
+  // Формы для материалов
+const [materialForm, setMaterialForm] = useState({
+  name: '',
+  description: '',
+  unit: '',
+  quantity_in_stock: 0,
+  min_stock_level: 0,
+  price_per_unit: 0,
+  supplier: '',
+  is_active: true
+});
+
+const [restockForm, setRestockForm] = useState({
+  quantity: 0,
+  cost_per_unit: 0,
+  supplier_info: '',
+  notes: ''
+});
+
+// Фильтры для материалов
+const [materialFilters, setMaterialFilters] = useState({
+  search: '',
+  low_stock_only: false
+});
 
   // Данные
   const [users, setUsers] = useState([]);
