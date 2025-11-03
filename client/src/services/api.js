@@ -29,7 +29,52 @@ export const authAPI = {
   },
 };
 
-// ==================== НОВЫЕ API ФУНКЦИИ ====================
+// ==================== API ФУНКЦИИ ДЛЯ СЕРВИСОВ ====================
+
+export const servicesAPI = {
+  getAll: async () => {
+    const response = await fetch(`${API_URL}/api/services`);
+    if (!response.ok) throw new Error('Failed to fetch services');
+    return response.json();
+  },
+
+  getById: async (id) => {
+    const response = await fetch(`${API_URL}/api/services/${id}`);
+    if (!response.ok) throw new Error('Failed to fetch service');
+    return response.json();
+  }
+};
+
+// ==================== API ФУНКЦИИ ДЛЯ ЗАПИСЕЙ ====================
+
+export const appointmentsAPI = {
+  create: async (appointmentData) => {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/api/appointments`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(appointmentData)
+    });
+    if (!response.ok) throw new Error('Failed to create appointment');
+    return response.json();
+  },
+
+  getUserAppointments: async () => {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/api/appointments/user`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    if (!response.ok) throw new Error('Failed to fetch user appointments');
+    return response.json();
+  }
+};
+
+// ==================== API ФУНКЦИИ ДЛЯ ИСПОЛНИТЕЛЯ ====================
 
 export const executorAPI = {
   // Получить все заказы исполнителя
@@ -137,77 +182,7 @@ export const executorAPI = {
   }
 };
 
-// ==================== API ФУНКЦИИ ДЛЯ СЕРВИСОВ ====================
-
-export const servicesAPI = {
-  getAll: async () => {
-    const response = await fetch(`${API_URL}/api/services`);
-    if (!response.ok) throw new Error('Failed to fetch services');
-    return response.json();
-  },
-
-  getById: async (id) => {
-    const response = await fetch(`${API_URL}/api/services/${id}`);
-    if (!response.ok) throw new Error('Failed to fetch service');
-    return response.json();
-  }
-};
-
-// ==================== API ФУНКЦИИ ДЛЯ ЗАПИСЕЙ ====================
-
-export const appointmentsAPI = {
-  create: async (appointmentData) => {
-    const token = localStorage.getItem('token');
-    const response = await fetch(`${API_URL}/api/appointments`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify(appointmentData)
-    });
-    if (!response.ok) throw new Error('Failed to create appointment');
-    return response.json();
-  },
-
-  getUserAppointments: async () => {
-    const token = localStorage.getItem('token');
-    const response = await fetch(`${API_URL}/api/appointments/user`, {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    });
-    if (!response.ok) throw new Error('Failed to fetch user appointments');
-    return response.json();
-  }
-};
-
-  // Пополнить склад материала
-  restockMaterial: async (materialId, restockData) => {
-    const token = localStorage.getItem('token');
-    const response = await fetch(`${API_URL}/api/admin/materials/${materialId}/restock`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify(restockData)
-    });
-    if (!response.ok) throw new Error('Failed to restock material');
-    return response.json();
-  },
-
-  // Получить отчеты по материалам
-  getMaterialsReport: async (filters = {}) => {
-    const token = localStorage.getItem('token');
-    const queryParams = new URLSearchParams(filters).toString();
-    const response = await fetch(`${API_URL}/api/admin/reports/materials?${queryParams}`, {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    });
-
-    // ==================== API ФУНКЦИИ ДЛЯ АДМИНА ====================
+// ==================== API ФУНКЦИИ ДЛЯ АДМИНА ====================
 
 export const adminAPI = {
   // ==================== УПРАВЛЕНИЕ ПОЛЬЗОВАТЕЛЯМИ ====================
@@ -378,10 +353,6 @@ export const adminAPI = {
         'Authorization': `Bearer ${token}`
       }
     });
-    if (!response.ok) throw new Error('Failed to fetch materials report');
-    return response.json();
-  }
-};
     if (!response.ok) throw new Error('Failed to fetch materials report');
     return response.json();
   }
