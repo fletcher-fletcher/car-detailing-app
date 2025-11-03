@@ -76,11 +76,26 @@ const Executor = () => {
     }
   };
 
-  const handleUseMaterials = (appointment) => {
+  const handleUseMaterials = async (appointment) => {
+  try {
+    console.log('Загружаем материалы для модального окна...');
+    
+    // Загружаем материалы если они еще не загружены или массив пустой
+    if (materials.length === 0) {
+      console.log('Материалы не загружены, загружаем...');
+      await fetchMaterialsAndAlerts();
+    }
+    
     setSelectedAppointment(appointment);
     setMaterialsToUse([]);
     setShowMaterialsModal(true);
-  };
+    
+    console.log('Материалы для выбора:', materials);
+  } catch (error) {
+    console.error('Ошибка загрузки материалов:', error);
+    alert('Ошибка загрузки материалов: ' + error.message);
+  }
+};
 
   const addMaterialToUse = () => {
     setMaterialsToUse([...materialsToUse, {
