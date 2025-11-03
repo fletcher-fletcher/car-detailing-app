@@ -52,18 +52,24 @@ const Executor = () => {
   };
 
   const fetchMaterialsAndAlerts = async () => {
-    try {
-      const [materialsData, alertsData] = await Promise.all([
-        executorAPI.getMaterials(),
-        executorAPI.getStockAlerts()
-      ]);
-      setMaterials(materialsData);
-      setStockAlerts(alertsData);
-    } catch (error) {
-      console.error('Error fetching materials:', error);
-      alert('Ошибка загрузки материалов: ' + error.message);
-    }
-  };
+  try {
+    console.log('Начинаем загрузку материалов...');
+    
+    const [materialsData, alertsData] = await Promise.all([
+      executorAPI.getMaterials(),
+      executorAPI.getStockAlerts()
+    ]);
+    
+    console.log('Загружены материалы:', materialsData);
+    console.log('Загружены алерты:', alertsData);
+    
+    setMaterials(materialsData);
+    setStockAlerts(alertsData);
+  } catch (error) {
+    console.error('Error fetching materials:', error);
+    alert('Ошибка загрузки материалов: ' + error.message);
+  }
+};
 
   const handleUpdateAppointmentStatus = async (appointmentId, status) => {
     try {
