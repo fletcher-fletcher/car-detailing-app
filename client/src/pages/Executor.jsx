@@ -12,10 +12,13 @@ const Executor = () => {
   
   // Для работы с заказами
   const [selectedAppointment, setSelectedAppointment] = useState(null);
+  const [showAppointmentModal, setShowAppointmentModal] = useState(false);
   const [showMaterialsModal, setShowMaterialsModal] = useState(false);
+  const [appointmentDetails, setAppointmentDetails] = useState(null);
   
   // Для работы с материалами
   const [materialsToUse, setMaterialsToUse] = useState([]);
+  const [usedMaterialsData, setUsedMaterialsData] = useState({}); // Используемые материалы по заказам
 
   useEffect(() => {
     checkExecutorAccess();
@@ -43,8 +46,25 @@ const Executor = () => {
 
   const fetchAppointments = async () => {
     try {
+      console.log('=== Загружаем заказы ===');
       const data = await executorAPI.getAppointments();
+      console.log('Загружены заказы:', data);
       setAppointments(data);
+      
+      // Загружаем детали для каждого заказа (включая использованные материалы)
+      const usedMaterials = {};
+      for (const appointment of data) {
+        try {
+          const details = await executorAPI.getAppointmentDetails(appointment.id);
+          if (details.used_materials && details.used_materials.length > 0) {
+            usedMaterials[appointment.id] = details.used_materials;
+          }
+        } catch (error) {
+          console.error(`Ошибка загрузки деталей для заказа ${appointment.id}:`, error);
+        }
+      }
+      setUsedMaterialsData(usedMaterials);
+      
     } catch (error) {
       console.error('Error fetching appointments:', error);
       alert('Ошибка загрузки заказов: ' + error.message);
@@ -52,24 +72,49 @@ const Executor = () => {
   };
 
   const fetchMaterialsAndAlerts = async () => {
-  try {
-    console.log('Начинаем загрузку материалов...');
+    try {
+      console.log('Начинаем загрузку материалов...');
+      
+      const [materialsData, alertsData] = await Promise.all([
+        executorAPI.getMaterials(),
+        executorAPI.getStockAlerts()
+      ]);
+      
+      console.log('Загружены материалы:', materialsData);
+      console.log('Загружены алерты:', alertsData);
+      
+      setMaterials(materialsData);
+      setStockAlerts(alertsData);
+    } catch (error) {
+      console.error('Error fetching materials:', error);
+      alert('Ошибка загрузки материалов: ' + error.message);
+    }
+  };
+
+  const handleEditAppointment = async (appointment) => {
+    try {
+      const details = await executorAPI.getAppointmentDetails(appointment.id);
+      setAppointmentDetails(details);
+      setSelectedAppointment(appointment);
+      setShowAppointmentModal(true);
+    } catch (error) {
+      console.error('Error fetching appointment details:', error);
+      alert('Ошибка загрузки деталей заказа');
+    }
+  };
+
+  const handleDeleteAppointment = async (appointmentId) => {
+    if (!window.confirm('Вы уверены, что хотите удалить этот заказ?')) return;
     
-    const [materialsData, alertsData] = await Promise.all([
-      executorAPI.getMaterials(),
-      executorAPI.getStockAlerts()
-    ]);
-    
-    console.log('Загружены материалы:', materialsData);
-    console.log('Загружены алерты:', alertsData);
-    
-    setMaterials(materialsData);
-    setStockAlerts(alertsData);
-  } catch (error) {
-    console.error('Error fetching materials:', error);
-    alert('Ошибка загрузки материалов: ' + error.message);
-  }
-};
+    try {
+      await executorAPI.deleteAppointment(appointmentId);
+      alert('Заказ удален');
+      fetchAppointments();
+    } catch (error) {
+      console.error('Error deleting appointment:', error);
+      alert('Ошибка удаления заказа');
+    }
+  };
 
   const handleUpdateAppointmentStatus = async (appointmentId, status) => {
     try {
@@ -78,30 +123,30 @@ const Executor = () => {
       fetchAppointments();
     } catch (error) {
       console.error('Error updating status:', error);
-      alert('Ошибка обновления статуса: ' + error.message);
+      alert('Ошибка обновления статуса');
     }
   };
 
   const handleUseMaterials = async (appointment) => {
-  try {
-    console.log('Загружаем материалы для модального окна...');
-    
-    // Загружаем материалы если они еще не загружены или массив пустой
-    if (materials.length === 0) {
-      console.log('Материалы не загружены, загружаем...');
-      await fetchMaterialsAndAlerts();
+    try {
+      console.log('Загружаем материалы для модального окна...');
+      
+      // Загружаем материалы если они еще не загружены или массив пустой
+      if (materials.length === 0) {
+        console.log('Материалы не загружены, загружаем...');
+        await fetchMaterialsAndAlerts();
+      }
+      
+      setSelectedAppointment(appointment);
+      setMaterialsToUse([]);
+      setShowMaterialsModal(true);
+      
+      console.log('Материалы для выбора:', materials);
+    } catch (error) {
+      console.error('Ошибка загрузки материалов:', error);
+      alert('Ошибка загрузки материалов: ' + error.message);
     }
-    
-    setSelectedAppointment(appointment);
-    setMaterialsToUse([]);
-    setShowMaterialsModal(true);
-    
-    console.log('Материалы для выбора:', materials);
-  } catch (error) {
-    console.error('Ошибка загрузки материалов:', error);
-    alert('Ошибка загрузки материалов: ' + error.message);
-  }
-};
+  };
 
   const addMaterialToUse = () => {
     setMaterialsToUse([...materialsToUse, {
@@ -129,7 +174,7 @@ const Executor = () => {
       alert('Материалы успешно использованы');
       setShowMaterialsModal(false);
       fetchMaterialsAndAlerts();
-      fetchAppointments();
+      fetchAppointments(); // Обновляем заказы, чтобы показать использованные материалы
     } catch (error) {
       console.error('Error using materials:', error);
       alert('Ошибка использования материалов: ' + error.message);
@@ -162,6 +207,15 @@ const Executor = () => {
       case 'warning': return '#F59E0B';
       case 'ok': return '#10B981';
       default: return '#6B7280';
+    }
+  };
+
+  const getStockStatusText = (stockStatus) => {
+    switch (stockStatus) {
+      case 'low': return 'Критично';
+      case 'warning': return 'Внимание';
+      case 'ok': return 'В норме';
+      default: return 'Неизвестно';
     }
   };
 
@@ -237,6 +291,12 @@ const Executor = () => {
       {/* Вкладка "Мои заказы" */}
       {activeTab === 'appointments' && (
         <div>
+          <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px'}}>
+            <h2 style={{fontSize: '22px', fontWeight: '600'}}>
+              Мои заказы
+            </h2>
+          </div>
+          
           {appointments.length === 0 ? (
             <div style={{textAlign: 'center', color: '#666', padding: '40px'}}>
               Вам пока не назначены заказы
@@ -277,6 +337,48 @@ const Executor = () => {
                     </div>
                   </div>
 
+                  {appointment.notes && (
+                    <div style={{
+                      background: '#F3F4F6',
+                      padding: '10px',
+                      borderRadius: '6px',
+                      marginBottom: '15px'
+                    }}>
+                      <strong>Заметки:</strong> {appointment.notes}
+                    </div>
+                  )}
+
+                  {/* Показываем использованные материалы */}
+                  {usedMaterialsData[appointment.id] && usedMaterialsData[appointment.id].length > 0 && (
+                    <div style={{
+                      background: '#F0FDF4',
+                      border: '1px solid #BBF7D0',
+                      padding: '10px',
+                      borderRadius: '6px',
+                      marginBottom: '15px'
+                    }}>
+                      <h4 style={{fontWeight: '600', marginBottom: '10px', color: '#059669'}}>
+                        📦 Использованные материалы:
+                      </h4>
+                      <div style={{display: 'grid', gap: '5px'}}>
+                        {usedMaterialsData[appointment.id].map((usage) => (
+                          <div key={usage.id} style={{
+                            display: 'flex', 
+                            justifyContent: 'space-between',
+                            padding: '5px 0',
+                            fontSize: '14px'
+                          }}>
+                            <span>{usage.material_name}</span>
+                            <span style={{fontWeight: '500'}}>
+                              {usage.quantity_used} {usage.unit}
+                              {usage.total_cost && ` (${usage.total_cost}₽)`}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   <div style={{display: 'flex', gap: '10px', flexWrap: 'wrap'}}>
                     {appointment.status === 'booked' && (
                       <>
@@ -294,12 +396,40 @@ const Executor = () => {
                         >
                           Начать работу
                         </button>
+                        <button
+                          onClick={() => handleEditAppointment(appointment)}
+                          style={{
+                            background: '#3B82F6',
+                            color: 'white',
+                            border: 'none',
+                            padding: '8px 16px',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            fontSize: '14px'
+                          }}
+                        >
+                          Редактировать
+                        </button>
+                        <button
+                          onClick={() => handleDeleteAppointment(appointment.id)}
+                          style={{
+                            background: '#EF4444',
+                            color: 'white',
+                            border: 'none',
+                            padding: '8px 16px',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            fontSize: '14px'
+                          }}
+                        >
+                          Удалить
+                        </button>
                       </>
                     )}
 
                     {appointment.status === 'in_progress' && (
                       <>
-                                                <button
+                        <button
                           onClick={() => handleUseMaterials(appointment)}
                           style={{
                             background: '#8B5CF6',
@@ -436,37 +566,208 @@ const Executor = () => {
                           {material.description}
                         </p>
                       )}
-                      <div style={{display: 'flex', gap: '20px', alignItems: 'center'}}>
-                        <span style={{fontSize: '16px', fontWeight: '500'}}>
-                          На складе: <strong>{material.quantity_in_stock} {material.unit}</strong>
-                        </span>
-                        <span style={{fontSize: '14px', color: '#666'}}>
-                          Мин. уровень: {material.min_stock_level} {material.unit}
-                        </span>
+                      <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px', marginTop: '10px'}}>
+                        {/* Остаток на складе - с выделением */}
+                        <div style={{
+                          background: material.stock_status === 'low' ? '#FEE2E2' : material.stock_status === 'warning' ? '#FEF3C7' : '#F0FDF4',
+                          padding: '10px',
+                          borderRadius: '6px',
+                          border: `1px solid ${material.stock_status === 'low' ? '#FECACA' : material.stock_status === 'warning' ? '#FDE68A' : '#BBF7D0'}`
+                        }}>
+                          <div style={{fontSize: '14px', color: '#666', marginBottom: '5px'}}>
+                            Остаток на складе:
+                          </div>
+                          <div style={{
+                            fontSize: '18px', 
+                            fontWeight: 'bold',
+                            color: material.stock_status === 'low' ? '#DC2626' : material.stock_status === 'warning' ? '#D97706' : '#059669'
+                          }}>
+                            {material.quantity_in_stock} {material.unit}
+                          </div>
+                        </div>
+
+                        {/* Минимальный уровень */}
+                        <div style={{
+                          background: '#F9FAFB',
+                          padding: '10px',
+                          borderRadius: '6px',
+                          border: '1px solid #E5E7EB'
+                        }}>
+                          <div style={{fontSize: '14px', color: '#666', marginBottom: '5px'}}>
+                            Минимальный уровень:
+                          </div>
+                          <div style={{fontSize: '16px', fontWeight: '500', color: '#374151'}}>
+                            {material.min_stock_level} {material.unit}
+                          </div>
+                        </div>
+
+                        {/* Цена за единицу */}
                         {material.price_per_unit > 0 && (
-                          <span style={{fontSize: '14px', color: '#666'}}>
-                            Цена: {material.price_per_unit}₽/{material.unit}
-                          </span>
+                          <div style={{
+                            background: '#F9FAFB',
+                            padding: '10px',
+                            borderRadius: '6px',
+                            border: '1px solid #E5E7EB'
+                          }}>
+                            <div style={{fontSize: '14px', color: '#666', marginBottom: '5px'}}>
+                              Цена за единицу:
+                            </div>
+                            <div style={{fontSize: '16px', fontWeight: '500', color: '#374151'}}>
+                              {material.price_per_unit}₽/{material.unit}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Поставщик */}
+                        {material.supplier && (
+                          <div style={{
+                            background: '#F9FAFB',
+                            padding: '10px',
+                            borderRadius: '6px',
+                            border: '1px solid #E5E7EB'
+                          }}>
+                            <div style={{fontSize: '14px', color: '#666', marginBottom: '5px'}}>
+                              Поставщик:
+                            </div>
+                            <div style={{fontSize: '16px', fontWeight: '500', color: '#374151'}}>
+                              {material.supplier}
+                            </div>
+                          </div>
                         )}
                       </div>
                     </div>
+                    
+                    {/* Статус запаса */}
                     <div style={{
                       background: getStockStatusColor(material.stock_status),
                       color: 'white',
-                      padding: '5px 12px',
-                      borderRadius: '15px',
+                      padding: '8px 16px',
+                      borderRadius: '20px',
                       fontSize: '14px',
-                      fontWeight: '500',
-                      whiteSpace: 'nowrap'
+                      fontWeight: '600',
+                      whiteSpace: 'nowrap',
+                      marginLeft: '15px'
                     }}>
-                      {material.stock_status === 'low' ? 'Критично' :
-                       material.stock_status === 'warning' ? 'Внимание' : 'Норма'}
+                      {getStockStatusText(material.stock_status)}
                     </div>
                   </div>
                 </div>
               ))}
             </div>
           )}
+        </div>
+      )}
+
+           {/* Модальное окно для редактирования заказа */}
+      {showAppointmentModal && selectedAppointment && appointmentDetails && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            background: 'white',
+            borderRadius: '8px',
+            padding: '30px',
+            maxWidth: '600px',
+            width: '90%',
+            maxHeight: '80vh',
+            overflow: 'auto'
+          }}>
+            <h3 style={{fontSize: '20px', fontWeight: '600', marginBottom: '20px'}}>
+              Детали заказа
+            </h3>
+            
+            <div style={{marginBottom: '20px'}}>
+              <h4 style={{fontWeight: '600', marginBottom: '10px'}}>Информация о заказе:</h4>
+              <p><strong>Услуга:</strong> {appointmentDetails.appointment.service_name}</p>
+              <p><strong>Клиент:</strong> {appointmentDetails.appointment.user_name}</p>
+              <p><strong>Телефон:</strong> {appointmentDetails.appointment.user_phone}</p>
+              <p><strong>Email:</strong> {appointmentDetails.appointment.user_email}</p>
+              <p><strong>Дата:</strong> {new Date(appointmentDetails.appointment.appointment_date).toLocaleDateString('ru-RU')}</p>
+              <p><strong>Время:</strong> {appointmentDetails.appointment.appointment_time}</p>
+              <p><strong>Цена:</strong> {appointmentDetails.appointment.price}₽</p>
+            </div>
+
+            {appointmentDetails.required_materials && appointmentDetails.required_materials.length > 0 && (
+              <div style={{marginBottom: '20px'}}>
+                <h4 style={{fontWeight: '600', marginBottom: '10px'}}>Необходимые материалы:</h4>
+                {appointmentDetails.required_materials.map((material) => (
+                  <div key={material.id} style={{
+                    padding: '10px',
+                    border: '1px solid #E5E7EB',
+                    borderRadius: '6px',
+                    marginBottom: '10px',
+                    background: material.available ? '#F0FDF4' : '#FEF2F2'
+                  }}>
+                    <div style={{display: 'flex', justifyContent: 'space-between'}}>
+                      <span>{material.name}</span>
+                      <span>
+                        {material.quantity_required} {material.unit}
+                        {material.available ? ' ✅' : ' ❌'}
+                      </span>
+                    </div>
+                    {!material.available && (
+                      <div style={{color: '#DC2626', fontSize: '12px', marginTop: '5px'}}>
+                        Недостаточно на складе (доступно: {material.quantity_in_stock})
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {appointmentDetails.used_materials && appointmentDetails.used_materials.length > 0 && (
+              <div style={{marginBottom: '20px'}}>
+                <h4 style={{fontWeight: '600', marginBottom: '10px'}}>Использованные материалы:</h4>
+                {appointmentDetails.used_materials.map((usage) => (
+                  <div key={usage.id} style={{
+                    padding: '10px',
+                    border: '1px solid #E5E7EB',
+                    borderRadius: '6px',
+                    marginBottom: '10px',
+                    background: '#F9FAFB'
+                  }}>
+                    <div style={{display: 'flex', justifyContent: 'space-between'}}>
+                      <span>{usage.material_name}</span>
+                      <span>{usage.quantity_used} {usage.unit}</span>
+                    </div>
+                    <div style={{fontSize: '12px', color: '#666', marginTop: '5px'}}>
+                      Использовано: {new Date(usage.used_at).toLocaleString('ru-RU')}
+                    </div>
+                    {usage.notes && (
+                      <div style={{fontSize: '12px', color: '#666', marginTop: '5px'}}>
+                        Заметки: {usage.notes}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div style={{display: 'flex', gap: '10px', justifyContent: 'flex-end'}}>
+              <button
+                onClick={() => setShowAppointmentModal(false)}
+                style={{
+                  background: '#6B7280',
+                  color: 'white',
+                  border: 'none',
+                  padding: '10px 20px',
+                  borderRadius: '6px',
+                  cursor: 'pointer'
+                }}
+              >
+                Закрыть
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -553,7 +854,7 @@ const Executor = () => {
                             <option value="">Выберите материал</option>
                             {materials.map((material) => (
                               <option key={material.id} value={material.id}>
-                                {material.name} (доступно: {material.quantity_in_stock} {material.unit})
+                                {material.name} (на складе: {material.quantity_in_stock} {material.unit})
                               </option>
                             ))}
                           </select>
@@ -644,7 +945,7 @@ const Executor = () => {
               )}
             </div>
 
-                        <div style={{display: 'flex', gap: '10px', justifyContent: 'flex-end'}}>
+            <div style={{display: 'flex', gap: '10px', justifyContent: 'flex-end'}}>
               <button
                 onClick={() => setShowMaterialsModal(false)}
                 style={{
@@ -683,4 +984,3 @@ const Executor = () => {
 };
 
 export default Executor;
-                
