@@ -198,17 +198,17 @@ const Admin = () => {
   };
 
   const handleRestockMaterial = (material) => {
-    console.log('Restock material:', material);
-    setSelectedMaterial(material);
-    setRestockForm({
-      quantity: 0,
-      cost_per_unit: material.price_per_unit || 0,
-      supplier_info: material.supplier || '',
-      notes: ''
-    });
-    setShowRestockModal(true);
-  };
-
+  console.log('Restock material:', material);
+  setSelectedMaterial(material);
+  setRestockForm({
+    quantity: 0,
+    cost_per_unit: parseFloat(material.price_per_unit) || 0,
+    supplier_info: material.supplier || '',
+    notes: ''
+  });
+  setShowRestockModal(true);
+};
+  
 const submitRestockForm = async () => {
   try {
     // Преобразуем в целые числа
@@ -1872,12 +1872,23 @@ const submitRestockForm = async () => {
                 <label style={{display: 'block', marginBottom: '5px', fontWeight: '500'}}>
                   Количество для пополнения *
                 </label>
-                <input
+<input
   type="number"
   step="1"
   min="1"
-  value={restockForm.quantity}
-  onChange={(e) => setRestockForm({...restockForm, quantity: parseInt(e.target.value) || 0})}
+  value={Math.round(restockForm.quantity)} // Принудительно округляем до целого
+  onChange={(e) => {
+    const value = e.target.value;
+    // Преобразуем в целое число и убираем десятичные части
+    const intValue = value === '' ? 0 : Math.round(parseFloat(value));
+    setRestockForm({...restockForm, quantity: intValue});
+  }}
+  onBlur={(e) => {
+    // При потере фокуса тоже округляем
+    const value = e.target.value;
+    const intValue = value === '' ? 0 : Math.round(parseFloat(value));
+    setRestockForm({...restockForm, quantity: intValue});
+  }}
   style={{
     width: '100%',
     padding: '10px',
@@ -1933,10 +1944,10 @@ const submitRestockForm = async () => {
     padding: '12px'
   }}>
     <p style={{color: '#2B6CB0', fontWeight: '500'}}>
-      💰 Общая стоимость: {((parseInt(restockForm.quantity) || 0) * (parseFloat(restockForm.cost_per_unit) || 0)).toFixed(2)}₽
+      💰 Общая стоимость: {((Math.round(restockForm.quantity) || 0) * (parseFloat(restockForm.cost_per_unit) || 0)).toFixed(2)}₽
     </p>
     <p style={{color: '#2B6CB0', fontSize: '14px'}}>
-      📦 Остаток после пополнения: {(parseInt(selectedMaterial.quantity_in_stock) || 0) + (parseInt(restockForm.quantity) || 0)} {selectedMaterial.unit}
+      📦 Остаток после пополнения: {(parseInt(selectedMaterial.quantity_in_stock) || 0) + (Math.round(restockForm.quantity) || 0)} {selectedMaterial.unit}
     </p>
   </div>
 )}
