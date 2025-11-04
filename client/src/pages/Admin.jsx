@@ -90,8 +90,10 @@ useEffect(() => {
   console.log('🔄 Active tab changed to:', activeTab);
   if (activeTab === 'materials') {
     console.log('📦 Loading materials...');
-    // Просто загружаем материалы каждый раз при переходе на вкладку
-    fetchMaterials();
+    // Загружаем материалы с небольшой задержкой чтобы избежать конфликтов
+    setTimeout(() => {
+      fetchMaterials();
+    }, 100);
   }
 }, [activeTab]);
   
