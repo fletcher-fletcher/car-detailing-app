@@ -88,10 +88,8 @@ useEffect(() => {
   console.log('🔄 Active tab changed to:', activeTab);
   if (activeTab === 'materials') {
     console.log('📦 Loading materials...');
-    // Проверяем, нужно ли загружать материалы
-    if (materials.length === 0) {
-      fetchMaterials();
-    }
+    // Просто загружаем материалы каждый раз при переходе на вкладку
+    fetchMaterials();
   }
 }, [activeTab]);
   
@@ -1049,6 +1047,17 @@ const handleDeleteMaterial = (materialId) => {
         Управление материалами
       </h2>
       <button
+          onClick={fetchMaterials}
+          style={{
+            background: '#EF4444',
+            color: 'white',
+            border: 'none',
+            padding: '10px 20px',
+            borderRadius: '6px',
+            cursor: 'pointer'
+          }}
+        >
+      <button
         onClick={handleCreateMaterial}
         style={{
           background: '#10B981',
@@ -1098,6 +1107,31 @@ const handleDeleteMaterial = (materialId) => {
         />
         Только с низкими запасами
       </label>
+    </div>
+      <div style={{
+      background: '#FEF3C7',
+      border: '1px solid #F59E0B',
+      borderRadius: '6px',
+      padding: '15px',
+      marginBottom: '20px',
+      textAlign: 'center'
+    }}>
+      <p><strong>Отладка:</strong> Загружено материалов: {materials.length}</p>
+      <p>Статус загрузки: {materialsLoading ? '🔄 ЗАГРУЗКА...' : '✅ Готово'}</p>
+      <button 
+        onClick={fetchMaterials}
+        style={{
+          background: '#3B82F6',
+          color: 'white',
+          border: 'none',
+          padding: '8px 16px',
+          borderRadius: '4px',
+          cursor: 'pointer',
+          marginTop: '10px'
+        }}
+      >
+        🔄 Загрузить вручную
+      </button>
     </div>
 
 {/* Список материалов */}
