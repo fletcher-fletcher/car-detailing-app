@@ -6,6 +6,7 @@ const Admin = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('users');
   const [loading, setLoading] = useState(true);
+  const [materialsLoading, setMaterialsLoading] = useState(false);
  
   // Формы для материалов
 const [materialForm, setMaterialForm] = useState({
@@ -115,14 +116,39 @@ const [materialFilters, setMaterialFilters] = useState({
   // ==================== МАТЕРИАЛЫ ====================
 
 const fetchMaterials = async () => {
+  setMaterialsLoading(true); // ← ДОБАВЬТЕ ЭТУ СТРОЧКУ В НАЧАЛЕ
   try {
-    console.log('Fetching materials with filters:', materialFilters); // Для отладки
+    console.log('🔍 Fetching materials with filters:', materialFilters);
     const data = await adminAPI.getMaterials(materialFilters);
-    console.log('Materials data received:', data); // Для отладки
-    setMaterials(data.materials || data || []);
+    console.log('✅ Materials data received:', data);
+    
+    // Обрабатываем разные форматы ответа
+    let materialsData = [];
+    
+    if (Array.isArray(data)) {
+      materialsData = data;
+      console.log('✅ Данные в формате массива');
+    } else if (data && Array.isArray(data.materials)) {
+      materialsData = data.materials;
+      console.log('✅ Данные в формате {materials: array}');
+    } else if (data && data.data && Array.isArray(data.data)) {
+      materialsData = data.data;
+      console.log('✅ Данные в формате {data: array}');
+    } else {
+      console.warn('⚠️ Неизвестный формат данных:', data);
+      materialsData = [];
+    }
+    
+    console.log('🎯 Final materials array:', materialsData);
+    setMaterials(materialsData);
+    
   } catch (error) {
-    console.error('Error fetching materials:', error);
-    alert('Ошибка загрузки материалов');
+    console.error('❌ Error fetching materials:', error);
+    console.error('❌ Error details:', error.message);
+    alert('Ошибка загрузки материалов: ' + (error.message || 'Неизвестная ошибка'));
+    setMaterials([]);
+  } finally {
+    setMaterialsLoading(false); // ← ДОБАВЬТЕ ЭТУ СТРОЧКУ В КОНЦЕ
   }
 };
 
