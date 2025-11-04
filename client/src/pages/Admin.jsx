@@ -84,6 +84,14 @@ const [materialFilters, setMaterialFilters] = useState({
   const [serviceFilters, setServiceFilters] = useState({ search: '', active_only: false });
   const [appointmentFilters, setAppointmentFilters] = useState({ status: '', executor_id: '' });
 
+  useEffect(() => {
+  console.log('🔄 Active tab changed to:', activeTab);
+  if (activeTab === 'materials') {
+    console.log('📦 Loading materials...');
+    fetchMaterials();
+  }
+}, [activeTab]);
+  
   // Загрузка данных при монтировании
   useEffect(() => {
     checkAdminAccess();
@@ -1097,98 +1105,100 @@ const handleDeleteMaterial = (materialId) => {
       </label>
     </div>
 
-    {/* Список материалов */}
-    {materials.length === 0 ? (
-      <div style={{textAlign: 'center', color: '#666', padding: '40px'}}>
-        Материалы не найдены
-      </div>
-    ) : (
-      <div style={{display: 'grid', gap: '15px'}}>
-        {materials.map((material) => (
-          <div key={material.id} style={{
-            border: '1px solid #E5E7EB',
-            borderRadius: '8px',
-            padding: '20px',
-            background: 'white'
-          }}>
-            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'start'}}>
-              <div style={{flex: 1}}>
-                <h3 style={{fontSize: '18px', fontWeight: '600', marginBottom: '5px'}}>
-                  {material.name}
-                </h3>
-                {material.description && (
-                  <p style={{color: '#666', marginBottom: '10px'}}>
-                    {material.description}
-                  </p>
-                )}
-                <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '10px', fontSize: '14px'}}>
-                  <span><strong>Остаток:</strong> {material.quantity_in_stock} {material.unit}</span>
-                  <span><strong>Мин. уровень:</strong> {material.min_stock_level} {material.unit}</span>
-                  <span><strong>Цена:</strong> {material.price_per_unit}₽/{material.unit}</span>
-                  {material.supplier && <span><strong>Поставщик:</strong> {material.supplier}</span>}
-                </div>
-              </div>
-              <div style={{display: 'flex', flexDirection: 'column', alignItems: 'end', gap: '10px'}}>
-                <div style={{
-                  background: getStockStatusColor(material),
-                  color: 'white',
-                  padding: '5px 12px',
-                  borderRadius: '15px',
-                  fontSize: '12px',
-                  fontWeight: '500'
-                }}>
-                  {getStockStatusText(material)}
-                </div>
-                <div style={{display: 'flex', gap: '8px'}}>
-                  <button
-                    onClick={() => handleRestockMaterial(material)}
-                    style={{
-                      background: '#3B82F6',
-                      color: 'white',
-                      border: 'none',
-                      padding: '6px 12px',
-                      borderRadius: '4px',
-                      cursor: 'pointer',
-                      fontSize: '12px'
-                    }}
-                  >
-                    Пополнить
-                  </button>
-                  <button
-                    onClick={() => handleEditMaterial(material)}
-                    style={{
-                      background: '#F59E0B',
-                      color: 'white',
-                      border: 'none',
-                      padding: '6px 12px',
-                      borderRadius: '4px',
-                      cursor: 'pointer',
-                      fontSize: '12px'
-                    }}
-                  >
-                    Редактировать
-                  </button>
-                  <button
-                    onClick={() => handleDeleteMaterial(material.id)}
-                    style={{
-                      background: '#EF4444',
-                      color: 'white',
-                      border: 'none',
-                      padding: '6px 12px',
-                      borderRadius: '4px',
-                      cursor: 'pointer',
-                      fontSize: '12px'
-                    }}
-                  >
-                    Удалить
-                  </button>
-                </div>
-              </div>
+{/* Список материалов */}
+{materialsLoading ? (
+  <div style={{textAlign: 'center', color: '#666', padding: '40px'}}>
+    Загрузка материалов...
+  </div>
+) : materials.length === 0 ? (
+  <div style={{textAlign: 'center', color: '#666', padding: '40px'}}>
+    Материалы не найдены
+  </div>
+) : (
+  <div style={{display: 'grid', gap: '15px'}}>
+    {materials.map((material) => (
+      <div key={material.id} style={{
+        border: '1px solid #E5E7EB',
+        borderRadius: '8px',
+        padding: '20px',
+        background: 'white'
+      }}>
+        <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'start'}}>
+          <div style={{flex: 1}}>
+            <h3 style={{fontSize: '18px', fontWeight: '600', marginBottom: '5px'}}>
+              {material.name}
+            </h3>
+            {material.description && (
+              <p style={{color: '#666', marginBottom: '10px'}}>
+                {material.description}
+              </p>
+            )}
+            <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '10px', fontSize: '14px'}}>
+              <span><strong>Остаток:</strong> {material.quantity_in_stock} {material.unit}</span>
+              <span><strong>Мин. уровень:</strong> {material.min_stock_level} {material.unit}</span>
+              <span><strong>Цена:</strong> {material.price_per_unit}₽/{material.unit}</span>
+              {material.supplier && <span><strong>Поставщик:</strong> {material.supplier}</span>}
             </div>
           </div>
-        ))}
+          <div style={{display: 'flex', flexDirection: 'column', alignItems: 'end', gap: '10px'}}>
+            <div style={{
+              background: getStockStatusColor(material),
+              color: 'white',
+              padding: '5px 12px',
+              borderRadius: '15px',
+              fontSize: '12px',
+              fontWeight: '500'
+            }}>
+              {getStockStatusText(material)}
+            </div>
+            <div style={{display: 'flex', gap: '8px'}}>
+              <button
+                onClick={() => handleRestockMaterial(material)}
+                style={{
+                  background: '#3B82F6',
+                  color: 'white',
+                  border: 'none',
+                  padding: '6px 12px',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontSize: '12px'
+                }}
+              >
+                Пополнить
+              </button>
+              <button
+                onClick={() => handleEditMaterial(material)}
+                style={{
+                  background: '#F59E0B',
+                  color: 'white',
+                  border: 'none',
+                  padding: '6px 12px',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontSize: '12px'
+                }}
+              >
+                Редактировать
+              </button>
+              <button
+                onClick={() => handleDeleteMaterial(material.id)}
+                style={{
+                  background: '#EF4444',
+                  color: 'white',
+                  border: 'none',
+                  padding: '6px 12px',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontSize: '12px'
+                }}
+              >
+                Удалить
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
-    )}
+    ))}
   </div>
 )}
 
