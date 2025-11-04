@@ -102,13 +102,6 @@ const [materialFilters, setMaterialFilters] = useState({
     fetchMaterials(); // Добавлен вызов загрузки материалов
   }, []);
 
-  // Загрузка данных при переключении вкладок
-  useEffect(() => {
-    if (activeTab === 'materials') {
-      fetchMaterials();
-    }
-  }, [activeTab]);
-
   const checkAdminAccess = () => {
     const user = JSON.parse(localStorage.getItem('user'));
     const token = localStorage.getItem('token');
