@@ -210,26 +210,30 @@ const Admin = () => {
   };
 
   const submitRestockForm = async () => {
-    try {
-      if (restockForm.quantity <= 0) {
-        alert('Количество должно быть больше 0');
-        return;
-      }
-
-      await adminAPI.restockMaterial(selectedMaterial.id, {
-        quantity: restockForm.quantity,
-        cost_per_unit: restockForm.cost_per_unit,
-        supplier_info: restockForm.supplier_info
-      });
-      
-      alert(`Склад пополнен на ${restockForm.quantity} ${selectedMaterial.unit}`);
-      setShowRestockModal(false);
-      fetchMaterials();
-    } catch (error) {
-      console.error('Error restocking material:', error);
-      alert('Ошибка пополнения склада: ' + error.message);
+  try {
+    // Преобразуем в числа
+    const quantity = Number(restockForm.quantity);
+    const currentStock = Number(selectedMaterial.quantity_in_stock);
+    
+    if (quantity <= 0) {
+      alert('Количество должно быть больше 0');
+      return;
     }
-  };
+
+    await adminAPI.restockMaterial(selectedMaterial.id, {
+      quantity: quantity,
+      cost_per_unit: Number(restockForm.cost_per_unit),
+      supplier_info: restockForm.supplier_info
+    });
+    
+    alert(`Склад пополнен на ${quantity} ${selectedMaterial.unit}`);
+    setShowRestockModal(false);
+    fetchMaterials();
+  } catch (error) {
+    console.error('Error restocking material:', error);
+    alert('Ошибка пополнения склада: ' + error.message);
+  }
+};
 
   const getStockStatusColor = (material) => {
     if (material.quantity_in_stock <= material.min_stock_level) return '#EF4444';
@@ -1922,22 +1926,21 @@ const Admin = () => {
                 />
               </div>
 
-              {restockForm.quantity > 0 && restockForm.cost_per_unit > 0 && (
-                <div style={{
-                  background: '#EBF8FF',
-                  border: '1px solid #3182CE',
-                  borderRadius: '6px',
-                  padding: '12px'
-                }}>
-                  <p style={{color: '#2B6CB0', fontWeight: '500'}}>
-                    💰 Общая стоимость: {(restockForm.quantity * restockForm.cost_per_unit).toFixed(2)}₽
-                  </p>
-                  <p style={{color: '#2B6CB0', fontSize: '14px'}}>
-                    📦 Остаток после пополнения: {selectedMaterial.quantity_in_stock + restockForm.quantity} {selectedMaterial.unit}
-                  </p>
-                </div>
-              )}
-            </div>
+ {restockForm.quantity > 0 && restockForm.cost_per_unit > 0 && (
+  <div style={{
+    background: '#EBF8FF',
+    border: '1px solid #3182CE',
+    borderRadius: '6px',
+    padding: '12px'
+  }}>
+    <p style={{color: '#2B6CB0', fontWeight: '500'}}>
+      💰 Общая стоимость: {(Number(restockForm.quantity) * Number(restockForm.cost_per_unit)).toFixed(2)}₽
+    </p>
+    <p style={{color: '#2B6CB0', fontSize: '14px'}}>
+      📦 Остаток после пополнения: {Number(selectedMaterial.quantity_in_stock) + Number(restockForm.quantity)} {selectedMaterial.unit}
+    </p>
+  </div>
+)}
 
             <div style={{display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '25px'}}>
               <button
