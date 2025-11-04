@@ -8,6 +8,20 @@ const Admin = () => {
   const [loading, setLoading] = useState(true);
   const [materialsLoading, setMaterialsLoading] = useState(false);
 
+  // Функция для надежного преобразования в целое число
+  const toInt = (value) => {
+    if (value === null || value === undefined || value === '') return 0;
+    const num = parseInt(value);
+    return isNaN(num) ? 0 : num;
+  };
+
+  // Функция для надежного преобразования в число с плавающей точкой
+  const toFloat = (value) => {
+    if (value === null || value === undefined || value === '') return 0;
+    const num = parseFloat(value);
+    return isNaN(num) ? 0 : num;
+  };
+
   // Формы для материалов
   const [materialForm, setMaterialForm] = useState({
     name: '',
@@ -142,9 +156,9 @@ const Admin = () => {
       name: material.name || '',
       description: material.description || '',
       unit: material.unit || '',
-      quantity_in_stock: material.quantity_in_stock || 0,
-      min_stock_level: material.min_stock_level || 0,
-      price_per_unit: material.price_per_unit || 0,
+      quantity_in_stock: toInt(material.quantity_in_stock),
+      min_stock_level: toInt(material.min_stock_level),
+      price_per_unit: toFloat(material.price_per_unit),
       supplier: material.supplier || '',
       is_active: material.is_active !== undefined ? material.is_active : true
     });
@@ -198,52 +212,50 @@ const Admin = () => {
   };
 
   const handleRestockMaterial = (material) => {
-  console.log('Restock material:', material);
-  setSelectedMaterial(material);
-  setRestockForm({
-    quantity: 0,
-    cost_per_unit: parseFloat(material.price_per_unit) || 0,
-    supplier_info: material.supplier || '',
-    notes: ''
-  });
-  setShowRestockModal(true);
-};
-  
-const submitRestockForm = async () => {
-  try {
-    // Преобразуем в целые числа
-    const quantity = parseInt(restockForm.quantity) || 0;
-    const currentStock = parseInt(selectedMaterial.quantity_in_stock) || 0;
-    
-    if (quantity <= 0) {
-      alert('Количество должно быть больше 0');
-      return;
-    }
-
-    await adminAPI.restockMaterial(selectedMaterial.id, {
-      quantity: quantity,
-      cost_per_unit: parseFloat(restockForm.cost_per_unit) || 0,
-      supplier_info: restockForm.supplier_info
+    console.log('Restock material:', material);
+    setSelectedMaterial(material);
+    setRestockForm({
+      quantity: 0,
+      cost_per_unit: toFloat(material.price_per_unit),
+      supplier_info: material.supplier || '',
+      notes: ''
     });
-    
-    alert(`Склад пополнен на ${quantity} ${selectedMaterial.unit}`);
-    setShowRestockModal(false);
-    fetchMaterials();
-  } catch (error) {
-    console.error('Error restocking material:', error);
-    alert('Ошибка пополнения склада: ' + error.message);
-  }
-};
+    setShowRestockModal(true);
+  };
+
+  const submitRestockForm = async () => {
+    try {
+      const quantity = toInt(restockForm.quantity);
+      
+      if (quantity <= 0) {
+        alert('Количество должно быть больше 0');
+        return;
+      }
+
+      await adminAPI.restockMaterial(selectedMaterial.id, {
+        quantity: quantity,
+        cost_per_unit: toFloat(restockForm.cost_per_unit),
+        supplier_info: restockForm.supplier_info
+      });
+      
+      alert(`Склад пополнен на ${quantity} ${selectedMaterial.unit}`);
+      setShowRestockModal(false);
+      fetchMaterials();
+    } catch (error) {
+      console.error('Error restocking material:', error);
+      alert('Ошибка пополнения склада: ' + error.message);
+    }
+  };
 
   const getStockStatusColor = (material) => {
-    if (material.quantity_in_stock <= material.min_stock_level) return '#EF4444';
-    if (material.quantity_in_stock <= material.min_stock_level * 1.5) return '#F59E0B';
+    if (toInt(material.quantity_in_stock) <= toInt(material.min_stock_level)) return '#EF4444';
+    if (toInt(material.quantity_in_stock) <= toInt(material.min_stock_level) * 1.5) return '#F59E0B';
     return '#10B981';
   };
 
   const getStockStatusText = (material) => {
-    if (material.quantity_in_stock <= material.min_stock_level) return 'Критично низкий';
-    if (material.quantity_in_stock <= material.min_stock_level * 1.5) return 'Требует внимания';
+    if (toInt(material.quantity_in_stock) <= toInt(material.min_stock_level)) return 'Критично низкий';
+    if (toInt(material.quantity_in_stock) <= toInt(material.min_stock_level) * 1.5) return 'Требует внимания';
     return 'В норме';
   };
 
@@ -339,10 +351,10 @@ const submitRestockForm = async () => {
     setServiceForm({
       name: service.name || '',
       description: service.description || '',
-      price: service.price || 0,
-      duration: service.duration || 60,
+      price: toFloat(service.price),
+      duration: toInt(service.duration),
       category: service.category || '',
-      preparation_days: service.preparation_days || 0,
+      preparation_days: toInt(service.preparation_days),
       is_active: service.is_active !== undefined ? service.is_active : true
     });
     setShowServiceModal(true);
@@ -655,12 +667,12 @@ const submitRestockForm = async () => {
                       <h3 style={{fontSize: '18px', fontWeight: '600', marginBottom: '8px'}}>
                         {user.name || 'Без имени'}
                       </h3>
-                      <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '10px', fontSize: '14px'}}>
-  <p><strong>Остаток:</strong> {parseInt(material.quantity_in_stock) || 0} {material.unit}</p>
-  <p><strong>Мин. уровень:</strong> {parseInt(material.min_stock_level) || 0} {material.unit}</p>
-  <p><strong>Цена:</strong> {parseFloat(material.price_per_unit) || 0}₽/{material.unit}</p>
-  {material.supplier && <p><strong>Поставщик:</strong> {material.supplier}</p>}
-</div>
+                      <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px', color: '#666'}}>
+                        <p><strong>Email:</strong> {user.email}</p>
+                        <p><strong>Телефон:</strong> {user.phone || 'Не указан'}</p>
+                        <p><strong>Роль:</strong> {getRoleText(user.role)}</p>
+                        <p><strong>Создан:</strong> {new Date(user.created_at).toLocaleDateString('ru-RU')}</p>
+                      </div>
                     </div>
                     <div style={{display: 'flex', gap: '10px'}}>
                       <button
@@ -761,10 +773,10 @@ const submitRestockForm = async () => {
                       )}
                       
                       <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '10px', fontSize: '14px'}}>
-                        <p><strong>💰 Цена:</strong> {service.price || 0}₽</p>
-                        <p><strong>⏱️ Длительность:</strong> {service.duration || 0} мин</p>
+                        <p><strong>💰 Цена:</strong> {toFloat(service.price)}₽</p>
+                        <p><strong>⏱️ Длительность:</strong> {toInt(service.duration)} мин</p>
                         <p><strong>📝 Категория:</strong> {service.category || 'Не указана'}</p>
-                        <p><strong>📅 Подготовка:</strong> {service.preparation_days || 0} дн.</p>
+                        <p><strong>📅 Подготовка:</strong> {toInt(service.preparation_days)} дн.</p>
                       </div>
                     </div>
                     
@@ -919,8 +931,8 @@ const submitRestockForm = async () => {
                         <p><strong>👨‍🔧 Исполнитель:</strong> {appointment.executor_name || 'Не назначен'}</p>
                         <p><strong>📅 Дата:</strong> {appointment.appointment_date ? new Date(appointment.appointment_date).toLocaleDateString('ru-RU') : 'Не указана'}</p>
                         <p><strong>⏰ Время:</strong> {appointment.appointment_time || 'Не указано'}</p>
-                        <p><strong>💰 Цена:</strong> {appointment.price || 0}₽</p>
-                        <p><strong>⏱️ Длительность:</strong> {appointment.duration || 0} мин</p>
+                        <p><strong>💰 Цена:</strong> {toFloat(appointment.price)}₽</p>
+                        <p><strong>⏱️ Длительность:</strong> {toInt(appointment.duration)} мин</p>
                       </div>
                       
                       {appointment.notes && (
@@ -1024,9 +1036,9 @@ const submitRestockForm = async () => {
                         </p>
                       )}
                       <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '10px', fontSize: '14px'}}>
-                        <p><strong>Остаток:</strong> {material.quantity_in_stock} {material.unit}</p>
-                        <p><strong>Мин. уровень:</strong> {material.min_stock_level} {material.unit}</p>
-                        <p><strong>Цена:</strong> {material.price_per_unit}₽/{material.unit}</p>
+                        <p><strong>Остаток:</strong> {toInt(material.quantity_in_stock)} {material.unit}</p>
+                        <p><strong>Мин. уровень:</strong> {toInt(material.min_stock_level)} {material.unit}</p>
+                        <p><strong>Цена:</strong> {toFloat(material.price_per_unit)}₽/{material.unit}</p>
                         {material.supplier && <p><strong>Поставщик:</strong> {material.supplier}</p>}
                       </div>
                     </div>
@@ -1331,7 +1343,7 @@ const submitRestockForm = async () => {
                     min="0"
                     step="0.01"
                     value={serviceForm.price}
-                    onChange={(e) => setServiceForm({...serviceForm, price: parseFloat(e.target.value) || 0})}
+                    onChange={(e) => setServiceForm({...serviceForm, price: toFloat(e.target.value)})}
                     style={{
                       width: '100%',
                       padding: '10px',
@@ -1350,8 +1362,9 @@ const submitRestockForm = async () => {
                   <input
                     type="number"
                     min="0"
+                    step="1"
                     value={serviceForm.duration}
-                    onChange={(e) => setServiceForm({...serviceForm, duration: parseInt(e.target.value) || 0})}
+                    onChange={(e) => setServiceForm({...serviceForm, duration: toInt(e.target.value)})}
                     style={{
                       width: '100%',
                       padding: '10px',
@@ -1391,8 +1404,9 @@ const submitRestockForm = async () => {
                   <input
                     type="number"
                     min="0"
+                    step="1"
                     value={serviceForm.preparation_days}
-                    onChange={(e) => setServiceForm({...serviceForm, preparation_days: parseInt(e.target.value) || 0})}
+                    onChange={(e) => setServiceForm({...serviceForm, preparation_days: toInt(e.target.value)})}
                     style={{
                       width: '100%',
                       padding: '10px',
@@ -1711,19 +1725,19 @@ const submitRestockForm = async () => {
                     Количество на складе
                   </label>
                   <input
-  type="number"
-  step="1"
-  min="0"
-  value={materialForm.quantity_in_stock}
-  onChange={(e) => setMaterialForm({...materialForm, quantity_in_stock: parseInt(e.target.value) || 0})}
-  style={{
-    width: '100%',
-    padding: '8px',
-    border: '1px solid #D1D5DB',
-    borderRadius: '4px'
-  }}
-  placeholder="0"
-/>
+                    type="number"
+                    step="1"
+                    min="0"
+                    value={materialForm.quantity_in_stock}
+                    onChange={(e) => setMaterialForm({...materialForm, quantity_in_stock: toInt(e.target.value)})}
+                    style={{
+                      width: '100%',
+                      padding: '8px',
+                      border: '1px solid #D1D5DB',
+                      borderRadius: '4px'
+                    }}
+                    placeholder="0"
+                  />
                 </div>
               </div>
 
@@ -1733,19 +1747,19 @@ const submitRestockForm = async () => {
                     Минимальный уровень запаса
                   </label>
                   <input
-  type="number"
-  step="1"
-  min="0"
-  value={materialForm.min_stock_level}
-  onChange={(e) => setMaterialForm({...materialForm, min_stock_level: parseInt(e.target.value) || 0})}
-  style={{
-    width: '100%',
-    padding: '8px',
-    border: '1px solid #D1D5DB',
-    borderRadius: '4px'
-  }}
-  placeholder="0"
-/>
+                    type="number"
+                    step="1"
+                    min="0"
+                    value={materialForm.min_stock_level}
+                    onChange={(e) => setMaterialForm({...materialForm, min_stock_level: toInt(e.target.value)})}
+                    style={{
+                      width: '100%',
+                      padding: '8px',
+                      border: '1px solid #D1D5DB',
+                      borderRadius: '4px'
+                    }}
+                    placeholder="0"
+                  />
                 </div>
 
                 <div>
@@ -1757,7 +1771,7 @@ const submitRestockForm = async () => {
                     step="0.01"
                     min="0"
                     value={materialForm.price_per_unit}
-                    onChange={(e) => setMaterialForm({...materialForm, price_per_unit: parseFloat(e.target.value) || 0})}
+                    onChange={(e) => setMaterialForm({...materialForm, price_per_unit: toFloat(e.target.value)})}
                     style={{
                       width: '100%',
                       padding: '8px',
@@ -1863,8 +1877,8 @@ const submitRestockForm = async () => {
               borderRadius: '6px',
               marginBottom: '20px'
             }}>
-              <p><strong>Текущий остаток:</strong> {selectedMaterial.quantity_in_stock} {selectedMaterial.unit}</p>
-              <p><strong>Минимальный уровень:</strong> {selectedMaterial.min_stock_level} {selectedMaterial.unit}</p>
+              <p><strong>Текущий остаток:</strong> {toInt(selectedMaterial.quantity_in_stock)} {selectedMaterial.unit}</p>
+              <p><strong>Минимальный уровень:</strong> {toInt(selectedMaterial.min_stock_level)} {selectedMaterial.unit}</p>
             </div>
             
             <div style={{display: 'grid', gap: '15px'}}>
@@ -1872,31 +1886,30 @@ const submitRestockForm = async () => {
                 <label style={{display: 'block', marginBottom: '5px', fontWeight: '500'}}>
                   Количество для пополнения *
                 </label>
-<input
-  type="number"
-  step="1"
-  min="1"
-  value={Math.round(restockForm.quantity)} // Принудительно округляем до целого
-  onChange={(e) => {
-    const value = e.target.value;
-    // Преобразуем в целое число и убираем десятичные части
-    const intValue = value === '' ? 0 : Math.round(parseFloat(value));
-    setRestockForm({...restockForm, quantity: intValue});
-  }}
-  onBlur={(e) => {
-    // При потере фокуса тоже округляем
-    const value = e.target.value;
-    const intValue = value === '' ? 0 : Math.round(parseFloat(value));
-    setRestockForm({...restockForm, quantity: intValue});
-  }}
-  style={{
-    width: '100%',
-    padding: '10px',
-    border: '1px solid #D1D5DB',
-    borderRadius: '4px'
-  }}
-  placeholder="Введите количество"
-/>
+                <input
+                  type="number"
+                  step="1"
+                  min="1"
+                  value={toInt(restockForm.quantity)}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    const intValue = toInt(value);
+                    setRestockForm({...restockForm, quantity: intValue});
+                  }}
+                  onKeyDown={(e) => {
+                    if (['.', ',', 'e', 'E'].includes(e.key)) {
+                      e.preventDefault();
+                    }
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    border: '1px solid #D1D5DB',
+                    borderRadius: '4px'
+                  }}
+                  placeholder="Введите количество"
+                />
+              </div>
 
               <div>
                 <label style={{display: 'block', marginBottom: '5px', fontWeight: '500'}}>
@@ -1906,8 +1919,8 @@ const submitRestockForm = async () => {
                   type="number"
                   step="0.01"
                   min="0"
-                  value={restockForm.cost_per_unit}
-                  onChange={(e) => setRestockForm({...restockForm, cost_per_unit: parseFloat(e.target.value) || 0})}
+                  value={toFloat(restockForm.cost_per_unit)}
+                  onChange={(e) => setRestockForm({...restockForm, cost_per_unit: toFloat(e.target.value)})}
                   style={{
                     width: '100%',
                     padding: '10px',
@@ -1936,21 +1949,22 @@ const submitRestockForm = async () => {
                 />
               </div>
 
-{restockForm.quantity > 0 && restockForm.cost_per_unit > 0 && (
-  <div style={{
-    background: '#EBF8FF',
-    border: '1px solid #3182CE',
-    borderRadius: '6px',
-    padding: '12px'
-  }}>
-    <p style={{color: '#2B6CB0', fontWeight: '500'}}>
-      💰 Общая стоимость: {((Math.round(restockForm.quantity) || 0) * (parseFloat(restockForm.cost_per_unit) || 0)).toFixed(2)}₽
-    </p>
-    <p style={{color: '#2B6CB0', fontSize: '14px'}}>
-      📦 Остаток после пополнения: {(parseInt(selectedMaterial.quantity_in_stock) || 0) + (Math.round(restockForm.quantity) || 0)} {selectedMaterial.unit}
-    </p>
-  </div>
-)}
+              {toInt(restockForm.quantity) > 0 && toFloat(restockForm.cost_per_unit) > 0 && (
+                <div style={{
+                  background: '#EBF8FF',
+                  border: '1px solid #3182CE',
+                  borderRadius: '6px',
+                  padding: '12px'
+                }}>
+                  <p style={{color: '#2B6CB0', fontWeight: '500'}}>
+                    💰 Общая стоимость: {(toInt(restockForm.quantity) * toFloat(restockForm.cost_per_unit)).toFixed(2)}₽
+                  </p>
+                  <p style={{color: '#2B6CB0', fontSize: '14px'}}>
+                    📦 Остаток после пополнения: {toInt(selectedMaterial.quantity_in_stock) + toInt(restockForm.quantity)} {selectedMaterial.unit}
+                  </p>
+                </div>
+              )}
+            </div>
 
             <div style={{display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '25px'}}>
               <button
@@ -1968,14 +1982,14 @@ const submitRestockForm = async () => {
               </button>
               <button
                 onClick={submitRestockForm}
-                disabled={restockForm.quantity <= 0}
+                disabled={toInt(restockForm.quantity) <= 0}
                 style={{
-                  background: restockForm.quantity <= 0 ? '#9CA3AF' : '#10B981',
+                  background: toInt(restockForm.quantity) <= 0 ? '#9CA3AF' : '#10B981',
                   color: 'white',
                   border: 'none',
                   padding: '10px 20px',
                   borderRadius: '6px',
-                  cursor: restockForm.quantity <= 0 ? 'not-allowed' : 'pointer'
+                  cursor: toInt(restockForm.quantity) <= 0 ? 'not-allowed' : 'pointer'
                 }}
               >
                 Пополнить склад
