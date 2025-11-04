@@ -99,7 +99,6 @@ const [materialFilters, setMaterialFilters] = useState({
     fetchServices();
     fetchAppointments();
     fetchExecutors();
-    fetchMaterials(); // Добавлен вызов загрузки материалов
   }, []);
 
   const checkAdminAccess = () => {
@@ -117,7 +116,7 @@ const [materialFilters, setMaterialFilters] = useState({
   // ==================== МАТЕРИАЛЫ ====================
 
 const fetchMaterials = async () => {
-  setMaterialsLoading(true); // ← ДОБАВЬТЕ ЭТУ СТРОЧКУ В НАЧАЛЕ
+  setMaterialsLoading(true); 
   try {
     console.log('🔍 Fetching materials with filters:', materialFilters);
     const data = await adminAPI.getMaterials(materialFilters);
