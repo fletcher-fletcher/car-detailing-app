@@ -554,23 +554,26 @@ const handleDeleteMaterial = (materialId) => {
         >
           📅 Записи ({appointments.length})
         </button>
-  <button
-  onClick={() => {
-    setActiveTab('materials');
-    fetchMaterials(); // ДОБАВЬТЕ ЭТУ СТРОЧКУ
-  }}
-  style={{
-    padding: '12px 24px',
-    border: 'none',
-    background: activeTab === 'materials' ? '#2563eb' : 'transparent',
-    color: activeTab === 'materials' ? 'white' : '#6B7280',
-    cursor: 'pointer',
-    borderRadius: '8px 8px 0 0',
-    fontWeight: activeTab === 'materials' ? '600' : 'normal'
-  }}
->
-  📦 Склад материалов ({materials.length})
-</button>
+        <button
+          onClick={() => {
+            setActiveTab('materials');
+            // Принудительно загружаем материалы при клике
+            setTimeout(() => {
+              fetchMaterials();
+            }, 100);
+          }}
+          style={{
+            padding: '12px 24px',
+            border: 'none',
+            background: activeTab === 'materials' ? '#2563eb' : 'transparent',
+            color: activeTab === 'materials' ? 'white' : '#6B7280',
+            cursor: 'pointer',
+            borderRadius: '8px 8px 0 0',
+            fontWeight: activeTab === 'materials' ? '600' : 'normal'
+          }}
+        >
+          📦 Склад материалов ({materials.length})
+        </button>
       </div>
 
       {/* ==================== ВКЛАДКА ПОЛЬЗОВАТЕЛИ ==================== */}
