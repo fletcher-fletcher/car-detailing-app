@@ -27,12 +27,6 @@ const Admin = () => {
     notes: ''
   });
 
-  // Фильтры для материалов
-  const [materialFilters, setMaterialFilters] = useState({
-    search: '',
-    low_stock_only: false
-  });
-
   // Данные
   const [users, setUsers] = useState([]);
   const [appointments, setAppointments] = useState([]);
@@ -81,7 +75,6 @@ const Admin = () => {
 
   // Фильтры
   const [userFilters, setUserFilters] = useState({ role: '', search: '' });
-  const [serviceFilters, setServiceFilters] = useState({ search: '', active_only: false });
   const [appointmentFilters, setAppointmentFilters] = useState({ status: '', executor_id: '' });
 
   // Загрузка данных при монтировании
@@ -117,7 +110,7 @@ const Admin = () => {
   const fetchMaterials = async () => {
     setMaterialsLoading(true);
     try {
-      const data = await adminAPI.getMaterials(materialFilters);
+      const data = await adminAPI.getMaterials();
       
       let materialsData = [];
       
@@ -716,59 +709,6 @@ const Admin = () => {
             </button>
           </div>
 
-          {/* Фильтры услуг */}
-          <div style={{
-            background: '#F9FAFB',
-            border: '1px solid #E5E7EB',
-            borderRadius: '8px',
-            padding: '15px',
-            marginBottom: '20px',
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-            gap: '15px'
-          }}>
-            <div>
-              <label style={{display: 'block', marginBottom: '5px', fontWeight: '500'}}>Поиск:</label>
-              <input
-                type="text"
-                placeholder="Название или описание..."
-                value={serviceFilters.search}
-                onChange={(e) => setServiceFilters({...serviceFilters, search: e.target.value})}
-                style={{
-                  width: '100%',
-                  padding: '8px',
-                  border: '1px solid #D1D5DB',
-                  borderRadius: '4px'
-                }}
-              />
-            </div>
-            <div style={{display: 'flex', alignItems: 'center', gap: '10px'}}>
-              <label style={{display: 'flex', alignItems: 'center', gap: '5px'}}>
-                <input
-                  type="checkbox"
-                  checked={serviceFilters.active_only}
-                  onChange={(e) => setServiceFilters({...serviceFilters, active_only: e.target.checked})}
-                />
-                Только активные услуги
-              </label>
-            </div>
-            <div style={{display: 'flex', alignItems: 'end'}}>
-              <button
-                onClick={fetchServices}
-                style={{
-                  background: '#3B82F6',
-                  color: 'white',
-                  border: 'none',
-                  padding: '8px 16px',
-                  borderRadius: '4px',
-                  cursor: 'pointer'
-                }}
-              >
-                Применить фильтры
-              </button>
-            </div>
-          </div>
-
           {/* Список услуг */}
           {services.length === 0 ? (
             <div style={{textAlign: 'center', color: '#666', padding: '40px'}}>
@@ -1041,59 +981,6 @@ const Admin = () => {
             >
               + Добавить материал
             </button>
-          </div>
-
-          {/* Фильтры материалов */}
-          <div style={{
-            background: '#F9FAFB',
-            border: '1px solid #E5E7EB',
-            borderRadius: '8px',
-            padding: '15px',
-            marginBottom: '20px',
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-            gap: '15px'
-          }}>
-            <div>
-              <label style={{display: 'block', marginBottom: '5px', fontWeight: '500'}}>Поиск:</label>
-              <input
-                type="text"
-                placeholder="Название или описание..."
-                value={materialFilters.search}
-                onChange={(e) => setMaterialFilters({...materialFilters, search: e.target.value})}
-                style={{
-                  width: '100%',
-                  padding: '8px',
-                  border: '1px solid #D1D5DB',
-                  borderRadius: '4px'
-                }}
-              />
-            </div>
-            <div style={{display: 'flex', alignItems: 'center', gap: '10px'}}>
-              <label style={{display: 'flex', alignItems: 'center', gap: '5px'}}>
-                <input
-                  type="checkbox"
-                  checked={materialFilters.low_stock_only}
-                  onChange={(e) => setMaterialFilters({...materialFilters, low_stock_only: e.target.checked})}
-                />
-                Только с низкими запасами
-              </label>
-            </div>
-            <div style={{display: 'flex', alignItems: 'end'}}>
-              <button
-                onClick={fetchMaterials}
-                style={{
-                  background: '#3B82F6',
-                  color: 'white',
-                  border: 'none',
-                  padding: '8px 16px',
-                  borderRadius: '4px',
-                  cursor: 'pointer'
-                }}
-              >
-                Применить фильтры
-              </button>
-            </div>
           </div>
 
           {/* Список материалов */}
