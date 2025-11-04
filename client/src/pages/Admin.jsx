@@ -4,6 +4,8 @@ import { adminAPI, authAPI } from '../services/api';
 
 const Admin = () => {
   const navigate = useNavigate();
+  console.log('🎯 Компонент Admin загружен!');
+console.log('📦 Материалы в начале:', materials);
   const [activeTab, setActiveTab] = useState('users');
   const [loading, setLoading] = useState(true);
   const [materialsLoading, setMaterialsLoading] = useState(false);
@@ -550,8 +552,11 @@ const handleDeleteMaterial = (materialId) => {
         >
           📅 Записи ({appointments.length})
         </button>
-        <button
-  onClick={() => setActiveTab('materials')}
+  <button
+  onClick={() => {
+    setActiveTab('materials');
+    fetchMaterials(); // ДОБАВЬТЕ ЭТУ СТРОЧКУ
+  }}
   style={{
     padding: '12px 24px',
     border: 'none',
