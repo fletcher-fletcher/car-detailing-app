@@ -84,11 +84,14 @@ const [materialFilters, setMaterialFilters] = useState({
   const [serviceFilters, setServiceFilters] = useState({ search: '', active_only: false });
   const [appointmentFilters, setAppointmentFilters] = useState({ status: '', executor_id: '' });
 
-  useEffect(() => {
+useEffect(() => {
   console.log('🔄 Active tab changed to:', activeTab);
   if (activeTab === 'materials') {
     console.log('📦 Loading materials...');
-    fetchMaterials();
+    // Проверяем, нужно ли загружать материалы
+    if (materials.length === 0) {
+      fetchMaterials();
+    }
   }
 }, [activeTab]);
   
