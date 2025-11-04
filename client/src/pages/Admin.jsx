@@ -136,6 +136,7 @@ const Admin = () => {
   };
 
   const handleEditMaterial = (material) => {
+    console.log('Edit material:', material);
     setSelectedMaterial(material);
     setMaterialForm({
       name: material.name || '',
@@ -151,6 +152,7 @@ const Admin = () => {
   };
 
   const handleCreateMaterial = () => {
+    console.log('Create material clicked');
     setSelectedMaterial(null);
     setMaterialForm({
       name: '',
@@ -196,6 +198,7 @@ const Admin = () => {
   };
 
   const handleRestockMaterial = (material) => {
+    console.log('Restock material:', material);
     setSelectedMaterial(material);
     setRestockForm({
       quantity: 0,
@@ -253,6 +256,7 @@ const Admin = () => {
   };
 
   const handleEditUser = (user) => {
+    console.log('Edit user:', user);
     setSelectedUser(user);
     setUserForm({
       name: user.name || '',
@@ -265,6 +269,7 @@ const Admin = () => {
   };
 
   const handleCreateUser = () => {
+    console.log('Create user clicked');
     setSelectedUser(null);
     setUserForm({
       name: '',
@@ -325,6 +330,7 @@ const Admin = () => {
   };
 
   const handleEditService = (service) => {
+    console.log('Edit service:', service);
     setSelectedService(service);
     setServiceForm({
       name: service.name || '',
@@ -339,6 +345,7 @@ const Admin = () => {
   };
 
   const handleCreateService = () => {
+    console.log('Create service clicked');
     setSelectedService(null);
     setServiceForm({
       name: '',
@@ -404,6 +411,7 @@ const Admin = () => {
   };
 
   const handleEditAppointment = (appointment) => {
+    console.log('Edit appointment:', appointment);
     setSelectedAppointment(appointment);
     setAppointmentForm({
       executor_id: appointment.executor_id || '',
@@ -1082,9 +1090,887 @@ const Admin = () => {
         </div>
       )}
 
-      {/* Модальные окна остаются без изменений */}
-      {/* ... остальной код модальных окон ... */}
+      {/* Модальные окна */}
+      {showUserModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            background: 'white',
+            borderRadius: '8px',
+            padding: '30px',
+            maxWidth: '500px',
+            width: '90%',
+            maxHeight: '80vh',
+            overflow: 'auto'
+          }}>
+            <h3 style={{fontSize: '20px', fontWeight: '600', marginBottom: '20px'}}>
+              {selectedUser ? 'Редактировать пользователя' : 'Создать пользователя'}
+            </h3>
+            
+            <div style={{display: 'grid', gap: '15px'}}>
+              <div>
+                <label style={{display: 'block', marginBottom: '5px', fontWeight: '500'}}>
+                  Имя <span style={{color: '#EF4444'}}>*</span>
+                </label>
+                <input
+                  type="text"
+                  value={userForm.name}
+                  onChange={(e) => setUserForm({...userForm, name: e.target.value})}
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    border: '1px solid #D1D5DB',
+                    borderRadius: '4px',
+                    fontSize: '14px'
+                  }}
+                  placeholder="Введите имя пользователя"
+                />
+              </div>
 
+              <div>
+                <label style={{display: 'block', marginBottom: '5px', fontWeight: '500'}}>
+                  Email <span style={{color: '#EF4444'}}>*</span>
+                </label>
+                <input
+                  type="email"
+                  value={userForm.email}
+                  onChange={(e) => setUserForm({...userForm, email: e.target.value})}
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    border: '1px solid #D1D5DB',
+                    borderRadius: '4px',
+                    fontSize: '14px'
+                  }}
+                  placeholder="email@example.com"
+                />
+              </div>
+
+              <div>
+                <label style={{display: 'block', marginBottom: '5px', fontWeight: '500'}}>
+                  Телефон
+                </label>
+                <input
+                  type="tel"
+                  value={userForm.phone}
+                  onChange={(e) => setUserForm({...userForm, phone: e.target.value})}
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    border: '1px solid #D1D5DB',
+                    borderRadius: '4px',
+                    fontSize: '14px'
+                  }}
+                  placeholder="+7 (999) 123-45-67"
+                />
+              </div>
+
+              <div>
+                <label style={{display: 'block', marginBottom: '5px', fontWeight: '500'}}>
+                  Пароль {!selectedUser && <span style={{color: '#EF4444'}}>*</span>}
+                </label>
+                <input
+                  type="password"
+                  value={userForm.password}
+                  onChange={(e) => setUserForm({...userForm, password: e.target.value})}
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    border: '1px solid #D1D5DB',
+                    borderRadius: '4px',
+                    fontSize: '14px'
+                  }}
+                  placeholder={selectedUser ? "Оставьте пустым, чтобы не менять" : "Введите пароль"}
+                />
+              </div>
+
+              <div>
+                <label style={{display: 'block', marginBottom: '5px', fontWeight: '500'}}>
+                  Роль <span style={{color: '#EF4444'}}>*</span>
+                </label>
+                <select
+                  value={userForm.role}
+                  onChange={(e) => setUserForm({...userForm, role: e.target.value})}
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    border: '1px solid #D1D5DB',
+                    borderRadius: '4px',
+                    fontSize: '14px'
+                  }}
+                >
+                  <option value="client">Клиент</option>
+                  <option value="executor">Исполнитель</option>
+                  <option value="admin">Администратор</option>
+                </select>
+              </div>
+            </div>
+
+            <div style={{display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '25px'}}>
+              <button
+                onClick={() => setShowUserModal(false)}
+                style={{
+                  background: '#6B7280',
+                  color: 'white',
+                  border: 'none',
+                  padding: '10px 20px',
+                  borderRadius: '6px',
+                  cursor: 'pointer'
+                }}
+              >
+                Отменить
+              </button>
+              <button
+                onClick={submitUserForm}
+                disabled={!userForm.name || !userForm.email || (!selectedUser && !userForm.password)}
+                style={{
+                  background: (!userForm.name || !userForm.email || (!selectedUser && !userForm.password)) 
+                    ? '#9CA3AF' : '#10B981',
+                  color: 'white',
+                  border: 'none',
+                  padding: '10px 20px',
+                  borderRadius: '6px',
+                  cursor: (!userForm.name || !userForm.email || (!selectedUser && !userForm.password)) 
+                    ? 'not-allowed' : 'pointer'
+                }}
+              >
+                {selectedUser ? 'Сохранить' : 'Создать'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showServiceModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            background: 'white',
+            borderRadius: '8px',
+            padding: '30px',
+            maxWidth: '600px',
+            width: '90%',
+            maxHeight: '80vh',
+            overflow: 'auto'
+          }}>
+            <h3 style={{fontSize: '20px', fontWeight: '600', marginBottom: '20px'}}>
+              {selectedService ? 'Редактировать услугу' : 'Создать услугу'}
+            </h3>
+            
+            <div style={{display: 'grid', gap: '15px'}}>
+              <div>
+                <label style={{display: 'block', marginBottom: '5px', fontWeight: '500'}}>
+                  Название <span style={{color: '#EF4444'}}>*</span>
+                </label>
+                <input
+                  type="text"
+                  value={serviceForm.name}
+                  onChange={(e) => setServiceForm({...serviceForm, name: e.target.value})}
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    border: '1px solid #D1D5DB',
+                    borderRadius: '4px',
+                    fontSize: '14px'
+                  }}
+                  placeholder="Например: Комплексная мойка автомобиля"
+                />
+              </div>
+
+              <div>
+                <label style={{display: 'block', marginBottom: '5px', fontWeight: '500'}}>
+                  Описание
+                </label>
+                <textarea
+                  value={serviceForm.description}
+                  onChange={(e) => setServiceForm({...serviceForm, description: e.target.value})}
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    border: '1px solid #D1D5DB',
+                    borderRadius: '4px',
+                    fontSize: '14px',
+                    minHeight: '80px',
+                    resize: 'vertical'
+                  }}
+                  placeholder="Подробное описание услуги..."
+                />
+              </div>
+
+              <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px'}}>
+                <div>
+                  <label style={{display: 'block', marginBottom: '5px', fontWeight: '500'}}>
+                    Цена (₽) <span style={{color: '#EF4444'}}>*</span>
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={serviceForm.price}
+                    onChange={(e) => setServiceForm({...serviceForm, price: parseFloat(e.target.value) || 0})}
+                    style={{
+                      width: '100%',
+                      padding: '10px',
+                      border: '1px solid #D1D5DB',
+                      borderRadius: '4px',
+                      fontSize: '14px'
+                    }}
+                    placeholder="0.00"
+                  />
+                </div>
+
+                <div>
+                  <label style={{display: 'block', marginBottom: '5px', fontWeight: '500'}}>
+                    Длительность (мин) <span style={{color: '#EF4444'}}>*</span>
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={serviceForm.duration}
+                    onChange={(e) => setServiceForm({...serviceForm, duration: parseInt(e.target.value) || 0})}
+                    style={{
+                      width: '100%',
+                      padding: '10px',
+                      border: '1px solid #D1D5DB',
+                      borderRadius: '4px',
+                      fontSize: '14px'
+                    }}
+                    placeholder="60"
+                  />
+                </div>
+              </div>
+
+              <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px'}}>
+                <div>
+                  <label style={{display: 'block', marginBottom: '5px', fontWeight: '500'}}>
+                    Категория
+                  </label>
+                  <input
+                    type="text"
+                    value={serviceForm.category}
+                    onChange={(e) => setServiceForm({...serviceForm, category: e.target.value})}
+                    style={{
+                      width: '100%',
+                      padding: '10px',
+                      border: '1px solid #D1D5DB',
+                      borderRadius: '4px',
+                      fontSize: '14px'
+                    }}
+                    placeholder="Например: Мойка, Детейлинг"
+                  />
+                </div>
+
+                <div>
+                  <label style={{display: 'block', marginBottom: '5px', fontWeight: '500'}}>
+                    Дни подготовки
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={serviceForm.preparation_days}
+                    onChange={(e) => setServiceForm({...serviceForm, preparation_days: parseInt(e.target.value) || 0})}
+                    style={{
+                      width: '100%',
+                      padding: '10px',
+                      border: '1px solid #D1D5DB',
+                      borderRadius: '4px',
+                      fontSize: '14px'
+                    }}
+                    placeholder="0"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label style={{display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer'}}>
+                  <input
+                    type="checkbox"
+                    checked={serviceForm.is_active}
+                    onChange={(e) => setServiceForm({...serviceForm, is_active: e.target.checked})}
+                    style={{cursor: 'pointer'}}
+                  />
+                  <span style={{fontWeight: '500'}}>Активная услуга</span>
+                </label>
+                <p style={{fontSize: '12px', color: '#666', marginTop: '4px'}}>
+                  Неактивные услуги не отображаются клиентам при бронировании
+                </p>
+              </div>
+            </div>
+
+            <div style={{display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '25px'}}>
+              <button
+                onClick={() => setShowServiceModal(false)}
+                style={{
+                  background: '#6B7280',
+                  color: 'white',
+                  border: 'none',
+                  padding: '10px 20px',
+                  borderRadius: '6px',
+                  cursor: 'pointer'
+                }}
+              >
+                Отменить
+              </button>
+              <button
+                onClick={submitServiceForm}
+                disabled={!serviceForm.name || serviceForm.price < 0 || serviceForm.duration < 0}
+                style={{
+                  background: (!serviceForm.name || serviceForm.price < 0 || serviceForm.duration < 0) 
+                    ? '#9CA3AF' : '#10B981',
+                  color: 'white',
+                  border: 'none',
+                  padding: '10px 20px',
+                  borderRadius: '6px',
+                  cursor: (!serviceForm.name || serviceForm.price < 0 || serviceForm.duration < 0) 
+                    ? 'not-allowed' : 'pointer'
+                }}
+              >
+                {selectedService ? 'Сохранить' : 'Создать'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showAppointmentModal && selectedAppointment && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            background: 'white',
+            borderRadius: '8px',
+            padding: '30px',
+            maxWidth: '500px',
+            width: '90%',
+            maxHeight: '80vh',
+            overflow: 'auto'
+          }}>
+            <h3 style={{fontSize: '20px', fontWeight: '600', marginBottom: '20px'}}>
+              Редактировать запись
+            </h3>
+
+            <div style={{
+              background: '#F3F4F6',
+              padding: '15px',
+              borderRadius: '6px',
+              marginBottom: '20px'
+            }}>
+              <h4 style={{fontWeight: '600', marginBottom: '8px'}}>Информация о записи:</h4>
+              <p><strong>Услуга:</strong> {selectedAppointment.service_name}</p>
+              <p><strong>Клиент:</strong> {selectedAppointment.user_name}</p>
+              <p><strong>Email:</strong> {selectedAppointment.user_email}</p>
+              <p><strong>Телефон:</strong> {selectedAppointment.user_phone}</p>
+            </div>
+            
+            <div style={{display: 'grid', gap: '15px'}}>
+              <div>
+                <label style={{display: 'block', marginBottom: '5px', fontWeight: '500'}}>
+                  Исполнитель
+                </label>
+                <select
+                  value={appointmentForm.executor_id}
+                  onChange={(e) => setAppointmentForm({...appointmentForm, executor_id: e.target.value})}
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    border: '1px solid #D1D5DB',
+                    borderRadius: '4px',
+                    fontSize: '14px'
+                  }}
+                >
+                  <option value="">Не назначен</option>
+                  {executors.map((executor) => (
+                    <option key={executor.id} value={executor.id}>
+                      {executor.name || executor.email}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px'}}>
+                <div>
+                  <label style={{display: 'block', marginBottom: '5px', fontWeight: '500'}}>
+                    Дата записи
+                  </label>
+                  <input
+                    type="date"
+                    value={appointmentForm.appointment_date}
+                    onChange={(e) => setAppointmentForm({...appointmentForm, appointment_date: e.target.value})}
+                    style={{
+                      width: '100%',
+                      padding: '10px',
+                      border: '1px solid #D1D5DB',
+                      borderRadius: '4px',
+                      fontSize: '14px'
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{display: 'block', marginBottom: '5px', fontWeight: '500'}}>
+                    Время записи
+                  </label>
+                  <input
+                    type="time"
+                    value={appointmentForm.appointment_time}
+                    onChange={(e) => setAppointmentForm({...appointmentForm, appointment_time: e.target.value})}
+                    style={{
+                      width: '100%',
+                      padding: '10px',
+                      border: '1px solid #D1D5DB',
+                      borderRadius: '4px',
+                      fontSize: '14px'
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label style={{display: 'block', marginBottom: '5px', fontWeight: '500'}}>
+                  Статус записи
+                </label>
+                <select
+                  value={appointmentForm.status}
+                  onChange={(e) => setAppointmentForm({...appointmentForm, status: e.target.value})}
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    border: '1px solid #D1D5DB',
+                    borderRadius: '4px',
+                    fontSize: '14px'
+                  }}
+                >
+                  <option value="">Выберите статус</option>
+                  <option value="booked">Забронировано</option>
+                  <option value="in_progress">В работе</option>
+                  <option value="completed">Выполнено</option>
+                  <option value="cancelled">Отменено</option>
+                </select>
+              </div>
+            </div>
+
+            <div style={{display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '25px'}}>
+              <button
+                onClick={() => setShowAppointmentModal(false)}
+                style={{
+                  background: '#6B7280',
+                  color: 'white',
+                  border: 'none',
+                  padding: '10px 20px',
+                  borderRadius: '6px',
+                  cursor: 'pointer'
+                }}
+              >
+                Отменить
+              </button>
+              <button
+                onClick={submitAppointmentForm}
+                style={{
+                  background: '#10B981',
+                  color: 'white',
+                  border: 'none',
+                  padding: '10px 20px',
+                  borderRadius: '6px',
+                  cursor: 'pointer'
+                }}
+              >
+                Сохранить изменения
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showMaterialModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            background: 'white',
+            borderRadius: '8px',
+            padding: '30px',
+            maxWidth: '600px',
+            width: '90%',
+            maxHeight: '80vh',
+            overflow: 'auto'
+          }}>
+            <h3 style={{fontSize: '20px', fontWeight: '600', marginBottom: '20px'}}>
+              {selectedMaterial ? 'Редактировать материал' : 'Создать материал'}
+            </h3>
+            
+            <div style={{display: 'grid', gap: '15px'}}>
+              <div>
+                <label style={{display: 'block', marginBottom: '5px', fontWeight: '500'}}>
+                  Название *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={materialForm.name}
+                  onChange={(e) => setMaterialForm({...materialForm, name: e.target.value})}
+                  style={{
+                    width: '100%',
+                    padding: '8px',
+                    border: '1px solid #D1D5DB',
+                    borderRadius: '4px'
+                  }}
+                  placeholder="Например: Автошампунь"
+                />
+              </div>
+
+              <div>
+                <label style={{display: 'block', marginBottom: '5px', fontWeight: '500'}}>
+                  Описание
+                </label>
+                <textarea
+                  value={materialForm.description}
+                  onChange={(e) => setMaterialForm({...materialForm, description: e.target.value})}
+                  style={{
+                    width: '100%',
+                    padding: '8px',
+                    border: '1px solid #D1D5DB',
+                    borderRadius: '4px',
+                    minHeight: '80px'
+                  }}
+                  placeholder="Подробное описание материала..."
+                />
+              </div>
+
+              <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px'}}>
+                <div>
+                  <label style={{display: 'block', marginBottom: '5px', fontWeight: '500'}}>
+                    Единица измерения *
+                  </label>
+                  <select
+                    required
+                    value={materialForm.unit}
+                    onChange={(e) => setMaterialForm({...materialForm, unit: e.target.value})}
+                    style={{
+                      width: '100%',
+                      padding: '8px',
+                      border: '1px solid #D1D5DB',
+                      borderRadius: '4px'
+                    }}
+                  >
+                    <option value="">Выберите единицу</option>
+                    <option value="шт">Штуки (шт)</option>
+                    <option value="л">Литры (л)</option>
+                    <option value="мл">Миллилитры (мл)</option>
+                    <option value="кг">Килограммы (кг)</option>
+                    <option value="г">Граммы (г)</option>
+                    <option value="м">Метры (м)</option>
+                    <option value="см">Сантиметры (см)</option>
+                    <option value="м2">Кв. метры (м²)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{display: 'block', marginBottom: '5px', fontWeight: '500'}}>
+                    Количество на складе
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={materialForm.quantity_in_stock}
+                    onChange={(e) => setMaterialForm({...materialForm, quantity_in_stock: parseFloat(e.target.value) || 0})}
+                    style={{
+                      width: '100%',
+                      padding: '8px',
+                      border: '1px solid #D1D5DB',
+                      borderRadius: '4px'
+                    }}
+                    placeholder="0"
+                  />
+                </div>
+              </div>
+
+              <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px'}}>
+                <div>
+                  <label style={{display: 'block', marginBottom: '5px', fontWeight: '500'}}>
+                    Минимальный уровень запаса
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={materialForm.min_stock_level}
+                    onChange={(e) => setMaterialForm({...materialForm, min_stock_level: parseFloat(e.target.value) || 0})}
+                    style={{
+                      width: '100%',
+                      padding: '8px',
+                      border: '1px solid #D1D5DB',
+                      borderRadius: '4px'
+                    }}
+                    placeholder="0"
+                  />
+                </div>
+
+                <div>
+                  <label style={{display: 'block', marginBottom: '5px', fontWeight: '500'}}>
+                    Цена за единицу (₽)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={materialForm.price_per_unit}
+                    onChange={(e) => setMaterialForm({...materialForm, price_per_unit: parseFloat(e.target.value) || 0})}
+                    style={{
+                      width: '100%',
+                      padding: '8px',
+                      border: '1px solid #D1D5DB',
+                      borderRadius: '4px'
+                    }}
+                    placeholder="0.00"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label style={{display: 'block', marginBottom: '5px', fontWeight: '500'}}>
+                  Поставщик
+                </label>
+                <input
+                  type="text"
+                  value={materialForm.supplier}
+                  onChange={(e) => setMaterialForm({...materialForm, supplier: e.target.value})}
+                  style={{
+                    width: '100%',
+                    padding: '8px',
+                    border: '1px solid #D1D5DB',
+                    borderRadius: '4px'
+                  }}
+                  placeholder="Название компании-поставщика"
+                />
+              </div>
+
+              <div>
+                <label style={{display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer'}}>
+                  <input
+                    type="checkbox"
+                    checked={materialForm.is_active}
+                    onChange={(e) => setMaterialForm({...materialForm, is_active: e.target.checked})}
+                    style={{cursor: 'pointer'}}
+                  />
+                  <span style={{fontWeight: '500'}}>Активный материал</span>
+                </label>
+              </div>
+            </div>
+
+            <div style={{display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '25px'}}>
+              <button
+                onClick={() => setShowMaterialModal(false)}
+                style={{
+                  background: '#6B7280',
+                  color: 'white',
+                  border: 'none',
+                  padding: '10px 20px',
+                  borderRadius: '6px',
+                  cursor: 'pointer'
+                }}
+              >
+                Отменить
+              </button>
+              <button
+                onClick={submitMaterialForm}
+                disabled={!materialForm.name || !materialForm.unit}
+                style={{
+                  background: (!materialForm.name || !materialForm.unit) ? '#9CA3AF' : '#10B981',
+                  color: 'white',
+                  border: 'none',
+                  padding: '10px 20px',
+                  borderRadius: '6px',
+                  cursor: (!materialForm.name || !materialForm.unit) ? 'not-allowed' : 'pointer'
+                }}
+              >
+                {selectedMaterial ? 'Сохранить' : 'Создать'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showRestockModal && selectedMaterial && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            background: 'white',
+            borderRadius: '8px',
+            padding: '30px',
+            maxWidth: '500px',
+            width: '90%'
+          }}>
+            <h3 style={{fontSize: '20px', fontWeight: '600', marginBottom: '20px'}}>
+              Пополнить склад: {selectedMaterial.name}
+            </h3>
+
+            <div style={{
+              background: '#F3F4F6',
+              padding: '15px',
+              borderRadius: '6px',
+              marginBottom: '20px'
+            }}>
+              <p><strong>Текущий остаток:</strong> {selectedMaterial.quantity_in_stock} {selectedMaterial.unit}</p>
+              <p><strong>Минимальный уровень:</strong> {selectedMaterial.min_stock_level} {selectedMaterial.unit}</p>
+            </div>
+            
+            <div style={{display: 'grid', gap: '15px'}}>
+              <div>
+                <label style={{display: 'block', marginBottom: '5px', fontWeight: '500'}}>
+                  Количество для пополнения *
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0.01"
+                  value={restockForm.quantity}
+                  onChange={(e) => setRestockForm({...restockForm, quantity: parseFloat(e.target.value) || 0})}
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    border: '1px solid #D1D5DB',
+                    borderRadius: '4px'
+                  }}
+                  placeholder="Введите количество"
+                />
+              </div>
+
+              <div>
+                <label style={{display: 'block', marginBottom: '5px', fontWeight: '500'}}>
+                  Стоимость за единицу (₽)
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={restockForm.cost_per_unit}
+                  onChange={(e) => setRestockForm({...restockForm, cost_per_unit: parseFloat(e.target.value) || 0})}
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    border: '1px solid #D1D5DB',
+                    borderRadius: '4px'
+                  }}
+                  placeholder="0.00"
+                />
+              </div>
+
+              <div>
+                <label style={{display: 'block', marginBottom: '5px', fontWeight: '500'}}>
+                  Информация о поставщике
+                </label>
+                <input
+                  type="text"
+                  value={restockForm.supplier_info}
+                  onChange={(e) => setRestockForm({...restockForm, supplier_info: e.target.value})}
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    border: '1px solid #D1D5DB',
+                    borderRadius: '4px'
+                  }}
+                  placeholder="Название компании, контакты"
+                />
+              </div>
+
+              {restockForm.quantity > 0 && restockForm.cost_per_unit > 0 && (
+                <div style={{
+                  background: '#EBF8FF',
+                  border: '1px solid #3182CE',
+                  borderRadius: '6px',
+                  padding: '12px'
+                }}>
+                  <p style={{color: '#2B6CB0', fontWeight: '500'}}>
+                    💰 Общая стоимость: {(restockForm.quantity * restockForm.cost_per_unit).toFixed(2)}₽
+                  </p>
+                  <p style={{color: '#2B6CB0', fontSize: '14px'}}>
+                    📦 Остаток после пополнения: {selectedMaterial.quantity_in_stock + restockForm.quantity} {selectedMaterial.unit}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div style={{display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '25px'}}>
+              <button
+                onClick={() => setShowRestockModal(false)}
+                style={{
+                  background: '#6B7280',
+                  color: 'white',
+                  border: 'none',
+                  padding: '10px 20px',
+                  borderRadius: '6px',
+                  cursor: 'pointer'
+                }}
+              >
+                Отменить
+              </button>
+              <button
+                onClick={submitRestockForm}
+                disabled={restockForm.quantity <= 0}
+                style={{
+                  background: restockForm.quantity <= 0 ? '#9CA3AF' : '#10B981',
+                  color: 'white',
+                  border: 'none',
+                  padding: '10px 20px',
+                  borderRadius: '6px',
+                  cursor: restockForm.quantity <= 0 ? 'not-allowed' : 'pointer'
+                }}
+              >
+                Пополнить склад
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
