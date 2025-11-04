@@ -78,56 +78,10 @@ const [materialFilters, setMaterialFilters] = useState({
     status: ''
   });
 
-  const [materialForm, setMaterialForm] = useState({
-    name: '',
-    description: '',
-    unit: '',
-    quantity_in_stock: 0,
-    min_stock_level: 0,
-    price_per_unit: 0,
-    supplier: '',
-    is_active: true
-  });
-
-  const [restockForm, setRestockForm] = useState({
-    quantity: 0,
-    cost_per_unit: 0,
-    supplier_info: '',
-    notes: ''
-  });
-
-  // Фильтры
+н  // Фильтры
   const [userFilters, setUserFilters] = useState({ role: '', search: '' });
   const [serviceFilters, setServiceFilters] = useState({ search: '', active_only: false });
   const [appointmentFilters, setAppointmentFilters] = useState({ status: '', executor_id: '' });
-  const [materialFilters, setMaterialFilters] = useState({
-    search: '',
-    low_stock_only: false
-  });
-  useEffect(() => {
-    checkAdminAccess();
-  }, []);
-
-  useEffect(() => {
-    if (!loading) {
-      switch (activeTab) {
-        case 'users':
-          fetchUsers();
-          break;
-        case 'services':
-          fetchServices();
-          break;
-        case 'appointments':
-          fetchAppointments();
-          fetchExecutors();
-          break;
-        case 'materials':  // ← ДОБАВЬТЕ ЭТУ СТРОКУ
-          fetchMaterials(); // ← И ЭТУ
-          break;           // ← И ЭТУ
-      }
-    }
-  }, [activeTab, loading]);
-
   const checkAdminAccess = () => {
     const user = JSON.parse(localStorage.getItem('user'));
     const token = localStorage.getItem('token');
