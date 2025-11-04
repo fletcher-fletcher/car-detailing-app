@@ -94,7 +94,29 @@ const [materialFilters, setMaterialFilters] = useState({
     setLoading(false);
   };
 
-  // Добавьте эти функции в компонент Admin:
+  useEffect(() => {
+    checkAdminAccess();
+  }, []);
+
+  useEffect(() => {
+    if (!loading) {
+      switch (activeTab) {
+        case 'users':
+          fetchUsers();
+          break;
+        case 'services':
+          fetchServices();
+          break;
+        case 'appointments':
+          fetchAppointments();
+          fetchExecutors();
+          break;
+        case 'materials':
+          fetchMaterials();
+          break;
+      }
+    }
+  }, [activeTab, loading]);
 
 // ==================== МАТЕРИАЛЫ ====================
 
