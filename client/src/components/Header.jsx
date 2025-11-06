@@ -69,7 +69,7 @@ const Header = () => {
                   className={`nav-link ${isActive('/profile') ? 'active' : ''}`}
                   style={isActive('/profile') ? {color: '#bfdbfe', fontWeight: 'bold'} : {}}
                 >
-                  📊 Личный кабинет
+                  Личный кабинет
                 </Link>
                 
                 <span className="nav-link">
