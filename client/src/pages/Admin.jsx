@@ -91,6 +91,9 @@ const Admin = () => {
   const [userFilters, setUserFilters] = useState({ role: '', search: '' });
   const [appointmentFilters, setAppointmentFilters] = useState({ status: '', executor_id: '' });
 
+  // Сортировка
+  const [appointmentsSort, setAppointmentsSort] = useState('date_asc'); // date_asc - от ближайших, date_desc - от дальних
+
   // Загрузка данных при монтировании
   useEffect(() => {
     checkAdminAccess();
@@ -117,6 +120,39 @@ const Admin = () => {
       return;
     }
     setLoading(false);
+  };
+
+  // Функция для сортировки заказов
+  const getSortedAppointments = () => {
+    const appointmentsCopy = [...appointments];
+    
+    switch (appointmentsSort) {
+      case 'date_asc':
+        // От ближайших к дальним
+        return appointmentsCopy.sort((a, b) => new Date(a.appointment_date) - new Date(b.appointment_date));
+      case 'date_desc':
+        // От дальних к ближайшим
+        return appointmentsCopy.sort((a, b) => new Date(b.appointment_date) - new Date(a.appointment_date));
+      case 'created_asc':
+        // От старых к новым (по дате создания)
+        return appointmentsCopy.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+      case 'created_desc':
+        // От новых к старым (по дате создания)
+        return appointmentsCopy.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+      default:
+        return appointmentsCopy;
+    }
+  };
+
+  // Функция для форматирования даты в российском формате
+  const formatDate = (dateString) => {
+    if (!dateString) return 'Не указана';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('ru-RU', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
   };
 
   // ==================== МАТЕРИАЛЫ ====================
@@ -671,7 +707,7 @@ const Admin = () => {
                         <p><strong>Email:</strong> {user.email}</p>
                         <p><strong>Телефон:</strong> {user.phone || 'Не указан'}</p>
                         <p><strong>Роль:</strong> {getRoleText(user.role)}</p>
-                        <p><strong>Создан:</strong> {new Date(user.created_at).toLocaleDateString('ru-RU')}</p>
+                        <p><strong>Создан:</strong> {formatDate(user.created_at)}</p>
                       </div>
                     </div>
                     <div style={{display: 'flex', gap: '10px'}}>
@@ -875,6 +911,24 @@ const Admin = () => {
                 ))}
               </select>
             </div>
+            <div>
+              <label style={{display: 'block', marginBottom: '5px', fontWeight: '500'}}>Сортировка:</label>
+              <select
+                value={appointmentsSort}
+                onChange={(e) => setAppointmentsSort(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '8px',
+                  border: '1px solid #D1D5DB',
+                  borderRadius: '4px'
+                }}
+              >
+                <option value="date_asc">📅 Ближайшие даты</option>
+                <option value="date_desc">📅 Дальние даты</option>
+                <option value="created_desc">🆕 Сначала новые</option>
+                <option value="created_asc">🕐 Сначала старые</option>
+              </select>
+            </div>
             <div style={{display: 'flex', alignItems: 'end'}}>
               <button
                 onClick={fetchAppointments}
@@ -887,7 +941,7 @@ const Admin = () => {
                   cursor: 'pointer'
                 }}
               >
-                Применить фильтры
+                Применить
               </button>
             </div>
           </div>
@@ -899,7 +953,7 @@ const Admin = () => {
             </div>
           ) : (
             <div style={{display: 'grid', gap: '15px'}}>
-              {appointments.map((appointment) => (
+              {getSortedAppointments().map((appointment) => (
                 <div key={appointment.id} style={{
                   border: '1px solid #E5E7EB',
                   borderRadius: '8px',
@@ -929,7 +983,7 @@ const Admin = () => {
                         <p><strong>📞 Телефон:</strong> {appointment.user_phone || 'Не указан'}</p>
                         <p><strong>📧 Email:</strong> {appointment.user_email || 'Не указан'}</p>
                         <p><strong>👨‍🔧 Исполнитель:</strong> {appointment.executor_name || 'Не назначен'}</p>
-                        <p><strong>📅 Дата:</strong> {appointment.appointment_date ? new Date(appointment.appointment_date).toLocaleDateString('ru-RU') : 'Не указана'}</p>
+                        <p><strong>📅 Дата:</strong> {formatDate(appointment.appointment_date)}</p>
                         <p><strong>⏰ Время:</strong> {appointment.appointment_time || 'Не указано'}</p>
                         <p><strong>💰 Цена:</strong> {toFloat(appointment.price)}₽</p>
                         <p><strong>⏱️ Длительность:</strong> {toInt(appointment.duration)} мин</p>
