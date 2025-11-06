@@ -22,72 +22,6 @@ const Admin = () => {
     return isNaN(num) ? 0 : num;
   };
 
-  // Функция для форматирования даты в российском формате
-  const formatDate = (dateString) => {
-    if (!dateString) return 'Не указана';
-    const date = new Date(dateString);
-    
-    // Проверяем валидность даты
-    if (isNaN(date.getTime())) return 'Неверная дата';
-    
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const year = date.getFullYear();
-    
-    return `${day}.${month}.${year}`;
-  };
-
-  // Функция для форматирования времени в формате ЧЧ:MM
-  const formatTime = (timeString) => {
-    if (!timeString) return 'Не указано';
-    
-    // Если время в формате "10:30:00" - убираем секунды
-    if (timeString.includes(':')) {
-      const parts = timeString.split(':');
-      if (parts.length >= 2) {
-        const hours = parts[0].padStart(2, '0');
-        const minutes = parts[1].padStart(2, '0');
-        return `${hours}:${minutes}`; // Берем только часы и минуты
-      }
-    }
-    
-    return timeString;
-  };
-
-  // Функции для работы с датами в российском формате
-
-  // Преобразование из БД формата (YYYY-MM-DD) в российский (DD.MM.YYYY)
-  const formatDateToRussian = (dateString) => {
-    if (!dateString) return '';
-    if (dateString.includes('.')) return dateString; // Уже в российском формате
-    
-    const date = new Date(dateString);
-    if (isNaN(date.getTime())) return dateString;
-    
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const year = date.getFullYear();
-    
-    return `${day}.${month}.${year}`;
-  };
-
-  // Преобразование из российского формата (DD.MM.YYYY) в БД формат (YYYY-MM-DD)
-  const formatDateToDB = (dateString) => {
-    if (!dateString) return '';
-    if (dateString.includes('-')) return dateString; // Уже в БД формате
-    
-    const parts = dateString.split('.');
-    if (parts.length === 3) {
-      const [day, month, year] = parts;
-      // Проверяем корректность даты
-      const date = new Date(`${year}-${month}-${day}`);
-      if (!isNaN(date.getTime())) {
-        return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
-      }
-    }
-    return dateString;
-  };
-
   // Формы для материалов
   const [materialForm, setMaterialForm] = useState({
     name: '',
@@ -208,6 +142,17 @@ const Admin = () => {
       default:
         return appointmentsCopy;
     }
+  };
+
+  // Функция для форматирования даты в российском формате
+  const formatDate = (dateString) => {
+    if (!dateString) return 'Не указана';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('ru-RU', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
   };
 
   // ==================== МАТЕРИАЛЫ ====================
@@ -522,7 +467,7 @@ const Admin = () => {
     setSelectedAppointment(appointment);
     setAppointmentForm({
       executor_id: appointment.executor_id || '',
-      appointment_date: appointment.appointment_date || '',
+      appointment_date: appointment.appointment_date?.split('T')[0] || '',
       appointment_time: appointment.appointment_time || '',
       status: appointment.status || ''
     });
@@ -531,16 +476,6 @@ const Admin = () => {
 
   const submitAppointmentForm = async () => {
     try {
-      // Проверяем корректность даты и времени перед отправкой
-      if (appointmentForm.appointment_date && !appointmentForm.appointment_date.includes('-')) {
-        const dbDate = formatDateToDB(appointmentForm.appointment_date);
-        if (!dbDate.includes('-')) {
-          alert('Пожалуйста, введите дату в формате дд.мм.гггг');
-          return;
-        }
-        appointmentForm.appointment_date = dbDate;
-      }
-
       await adminAPI.updateAppointment(selectedAppointment.id, appointmentForm);
       alert('Заказ обновлен');
       setShowAppointmentModal(false);
@@ -1049,7 +984,7 @@ const Admin = () => {
                         <p><strong>📧 Email:</strong> {appointment.user_email || 'Не указан'}</p>
                         <p><strong>👨‍🔧 Исполнитель:</strong> {appointment.executor_name || 'Не назначен'}</p>
                         <p><strong>📅 Дата:</strong> {formatDate(appointment.appointment_date)}</p>
-                        <p><strong>⏰ Время:</strong> {formatTime(appointment.appointment_time)}</p>
+                        <p><strong>⏰ Время:</strong> {appointment.appointment_time || 'Не указано'}</p>
                         <p><strong>💰 Цена:</strong> {toFloat(appointment.price)}₽</p>
                         <p><strong>⏱️ Длительность:</strong> {toInt(appointment.duration)} мин</p>
                       </div>
@@ -1624,11 +1559,8 @@ const Admin = () => {
               <h4 style={{fontWeight: '600', marginBottom: '8px'}}>Информация о записи:</h4>
               <p><strong>Услуга:</strong> {selectedAppointment.service_name}</p>
               <p><strong>Клиент:</strong> {selectedAppointment.user_name}</p>
-              <p><strong>Телефон:</strong> {selectedAppointment.user_phone}</p>
               <p><strong>Email:</strong> {selectedAppointment.user_email}</p>
-              <p><strong>Дата:</strong> {formatDate(selectedAppointment.appointment_date)}</p>
-              <p><strong>Время:</strong> {formatTime(selectedAppointment.appointment_time)}</p>
-              <p><strong>Цена:</strong> {selectedAppointment.price}₽</p>
+              <p><strong>Телефон:</strong> {selectedAppointment.user_phone}</p>
             </div>
             
             <div style={{display: 'grid', gap: '15px'}}>
@@ -1656,56 +1588,35 @@ const Admin = () => {
                 </select>
               </div>
 
-              {/* ИЗМЕНЕНИЕ: Российский формат даты и времени */}
-              <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px'}}>
-                <div>
-                  <label style={{display: 'block', marginBottom: '5px', fontWeight: '500'}}>
-                    Дата записи
-                  </label>
-                  <input
-                    type="text"
-                    value={formatDateToRussian(appointmentForm.appointment_date)}
-                    onChange={(e) => {
-                      let value = e.target.value;
-                      // Ограничиваем длину и форматируем
-                      value = value.replace(/\D/g, '');
-                      if (value.length > 8) value = value.slice(0, 8);
-                      if (value.length > 4) value = value.slice(0, 4) + '.' + value.slice(4, 8);
-                      if (value.length > 2) value = value.slice(0, 2) + '.' + value.slice(2);
-                      
-                      setAppointmentForm({
-                        ...appointmentForm, 
-                        appointment_date: value // Сохраняем в российском формате, преобразуем при отправке
-                      });
-                    }}
-                    placeholder="дд.мм.гггг"
-                    style={{
-                      width: '100%',
-                      padding: '10px',
-                      border: '1px solid #D1D5DB',
-                      borderRadius: '4px',
-                      fontSize: '14px'
-                    }}
-                  />
-                </div>
+              <div>
+  <label style={{display: 'block', marginBottom: '5px', fontWeight: '500'}}>
+    Дата записи
+  </label>
+  <input
+    type="date"
+    value={appointmentForm.appointment_date}
+    onChange={(e) => setAppointmentForm({...appointmentForm, appointment_date: e.target.value})}
+    style={{
+      width: '100%',
+      padding: '10px',
+      border: '1px solid #D1D5DB',
+      borderRadius: '4px',
+      fontSize: '14px'
+    }}
+    // Добавляем атрибуты для русского языка и формата
+    lang="ru"
+    pattern="\d{2}-\d{2}-\d{4}"
+    placeholder="дд-мм-гггг"
+  />
 
                 <div>
                   <label style={{display: 'block', marginBottom: '5px', fontWeight: '500'}}>
                     Время записи
                   </label>
                   <input
-                    type="text"
+                    type="time"
                     value={appointmentForm.appointment_time}
-                    onChange={(e) => {
-                      let value = e.target.value;
-                      // Форматируем как ЧЧ:MM
-                      value = value.replace(/\D/g, '');
-                      if (value.length > 4) value = value.slice(0, 4);
-                      if (value.length > 2) value = value.slice(0, 2) + ':' + value.slice(2, 4);
-                      
-                      setAppointmentForm({...appointmentForm, appointment_time: value});
-                    }}
-                    placeholder="чч:мм"
+                    onChange={(e) => setAppointmentForm({...appointmentForm, appointment_time: e.target.value})}
                     style={{
                       width: '100%',
                       padding: '10px',
