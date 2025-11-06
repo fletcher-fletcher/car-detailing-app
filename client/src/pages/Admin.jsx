@@ -1608,7 +1608,8 @@ const Admin = () => {
     pattern="\d{2}-\d{2}-\d{4}"
     placeholder="дд-мм-гггг"
   />
-
+              </div>
+              
                 <div>
                   <label style={{display: 'block', marginBottom: '5px', fontWeight: '500'}}>
                     Время записи
