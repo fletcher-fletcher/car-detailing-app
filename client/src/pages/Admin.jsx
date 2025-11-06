@@ -22,6 +22,38 @@ const Admin = () => {
     return isNaN(num) ? 0 : num;
   };
 
+  // Функция для форматирования даты в российском формате
+  const formatDate = (dateString) => {
+    if (!dateString) return 'Не указана';
+    const date = new Date(dateString);
+    
+    // Проверяем валидность даты
+    if (isNaN(date.getTime())) return 'Неверная дата';
+    
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    
+    return `${day}.${month}.${year}`;
+  };
+
+  // Функция для форматирования времени в формате ЧЧ:MM
+  const formatTime = (timeString) => {
+    if (!timeString) return 'Не указано';
+    
+    // Если время в формате "10:30:00" - убираем секунды
+    if (timeString.includes(':')) {
+      const parts = timeString.split(':');
+      if (parts.length >= 2) {
+        const hours = parts[0].padStart(2, '0');
+        const minutes = parts[1].padStart(2, '0');
+        return `${hours}:${minutes}`; // Берем только часы и минуты
+      }
+    }
+    
+    return timeString;
+  };
+
   // Функции для работы с датами в российском формате
 
   // Преобразование из БД формата (YYYY-MM-DD) в российский (DD.MM.YYYY)
@@ -176,17 +208,6 @@ const Admin = () => {
       default:
         return appointmentsCopy;
     }
-  };
-
-  // Функция для форматирования даты в российском формате
-  const formatDate = (dateString) => {
-    if (!dateString) return 'Не указана';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('ru-RU', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
-    });
   };
 
   // ==================== МАТЕРИАЛЫ ====================
@@ -1028,7 +1049,7 @@ const Admin = () => {
                         <p><strong>📧 Email:</strong> {appointment.user_email || 'Не указан'}</p>
                         <p><strong>👨‍🔧 Исполнитель:</strong> {appointment.executor_name || 'Не назначен'}</p>
                         <p><strong>📅 Дата:</strong> {formatDate(appointment.appointment_date)}</p>
-                        <p><strong>⏰ Время:</strong> {appointment.appointment_time || 'Не указано'}</p>
+                        <p><strong>⏰ Время:</strong> {formatTime(appointment.appointment_time)}</p>
                         <p><strong>💰 Цена:</strong> {toFloat(appointment.price)}₽</p>
                         <p><strong>⏱️ Длительность:</strong> {toInt(appointment.duration)} мин</p>
                       </div>
@@ -1603,8 +1624,11 @@ const Admin = () => {
               <h4 style={{fontWeight: '600', marginBottom: '8px'}}>Информация о записи:</h4>
               <p><strong>Услуга:</strong> {selectedAppointment.service_name}</p>
               <p><strong>Клиент:</strong> {selectedAppointment.user_name}</p>
-              <p><strong>Email:</strong> {selectedAppointment.user_email}</p>
               <p><strong>Телефон:</strong> {selectedAppointment.user_phone}</p>
+              <p><strong>Email:</strong> {selectedAppointment.user_email}</p>
+              <p><strong>Дата:</strong> {formatDate(selectedAppointment.appointment_date)}</p>
+              <p><strong>Время:</strong> {formatTime(selectedAppointment.appointment_time)}</p>
+              <p><strong>Цена:</strong> {selectedAppointment.price}₽</p>
             </div>
             
             <div style={{display: 'grid', gap: '15px'}}>
