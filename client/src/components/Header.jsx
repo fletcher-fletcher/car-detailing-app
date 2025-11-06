@@ -62,15 +62,15 @@ const Header = () => {
                     Панель исполнителя
                   </Link>
                 )}
-                {user.role === 'user' && (
-                  <Link 
-                    to="/profile" 
-                    className={`nav-link ${isActive('/profile') ? 'active' : ''}`}
-                    style={isActive('/profile') ? {color: '#bfdbfe', fontWeight: 'bold'} : {}}
-                  >
-                    Личный кабинет
-                  </Link>
-                )}
+                
+                {/* ДОБАВЛЕНО: Ссылка на профиль для всех авторизованных пользователей */}
+                <Link 
+                  to="/profile" 
+                  className={`nav-link ${isActive('/profile') ? 'active' : ''}`}
+                  style={isActive('/profile') ? {color: '#bfdbfe', fontWeight: 'bold'} : {}}
+                >
+                  📊 Личный кабинет
+                </Link>
                 
                 <span className="nav-link">
                   Привет, {user.name}!
