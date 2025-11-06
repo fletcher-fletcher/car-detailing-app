@@ -7,7 +7,6 @@ const Admin = () => {
   const [activeTab, setActiveTab] = useState('users');
   const [loading, setLoading] = useState(true);
   const [materialsLoading, setMaterialsLoading] = useState(false);
-  const [appointmentsSort, setAppointmentsSort] = useState('date_asc'); // date_asc - от ближайших, date_desc - от дальних
 
   // Функция для надежного преобразования в целое число
   const toInt = (value) => {
@@ -16,27 +15,6 @@ const Admin = () => {
     return isNaN(num) ? 0 : num;
   };
 
-  const getSortedAppointments = () => {
-  const appointmentsCopy = [...appointments];
-  
-  switch (appointmentsSort) {
-    case 'date_asc':
-      // От ближайших к дальним
-      return appointmentsCopy.sort((a, b) => new Date(a.appointment_date) - new Date(b.appointment_date));
-    case 'date_desc':
-      // От дальних к ближайшим
-      return appointmentsCopy.sort((a, b) => new Date(b.appointment_date) - new Date(a.appointment_date));
-    case 'created_asc':
-      // От старых к новым (по дате создания)
-      return appointmentsCopy.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
-    case 'created_desc':
-      // От новых к старым (по дате создания)
-      return appointmentsCopy.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-    default:
-      return appointmentsCopy;
-  }
-};
-  
   // Функция для надежного преобразования в число с плавающей точкой
   const toFloat = (value) => {
     if (value === null || value === undefined || value === '') return 0;
@@ -108,48 +86,7 @@ const Admin = () => {
     appointment_time: '',
     status: ''
   });
-const getSortedAppointments = () => {
-  const appointmentsCopy = [...appointments];
-  
-  switch (appointmentsSort) {
-    case 'date_asc':
-      // От ближайших к дальним
-      return appointmentsCopy.sort((a, b) => new Date(a.appointment_date) - new Date(b.appointment_date));
-    case 'date_desc':
-      // От дальних к ближайшим
-      return appointmentsCopy.sort((a, b) => new Date(b.appointment_date) - new Date(a.appointment_date));
-    case 'created_asc':
-      // От старых к новым (по дате создания)
-      return appointmentsCopy.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
-    case 'created_desc':
-      // От новых к старым (по дате создания)
-      return appointmentsCopy.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-    default:
-      return appointmentsCopy;
-  }
-};
 
-  {/* Список записей */}
-{appointments.length === 0 ? (
-  <div style={{textAlign: 'center', color: '#666', padding: '40px'}}>
-    Записи не найдены
-  </div>
-) : (
-  <div style={{display: 'grid', gap: '15px'}}>
-    {getSortedAppointments().map((appointment) => (
-      // остальной код карточки записи без изменений
-
-    // Функция для форматирования даты в российском формате
-const formatDate = (dateString) => {
-  if (!dateString) return 'Не указана';
-  const date = new Date(dateString);
-  return date.toLocaleDateString('ru-RU', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric'
-  });
-};
-    
   // Фильтры
   const [userFilters, setUserFilters] = useState({ role: '', search: '' });
   const [appointmentFilters, setAppointmentFilters] = useState({ status: '', executor_id: '' });
@@ -992,7 +929,7 @@ const formatDate = (dateString) => {
                         <p><strong>📞 Телефон:</strong> {appointment.user_phone || 'Не указан'}</p>
                         <p><strong>📧 Email:</strong> {appointment.user_email || 'Не указан'}</p>
                         <p><strong>👨‍🔧 Исполнитель:</strong> {appointment.executor_name || 'Не назначен'}</p>
-                        <p><strong>📅 Дата:</strong> {formatDate(appointment.appointment_date)}</p>
+                        <p><strong>📅 Дата:</strong> {appointment.appointment_date ? new Date(appointment.appointment_date).toLocaleDateString('ru-RU') : 'Не указана'}</p>
                         <p><strong>⏰ Время:</strong> {appointment.appointment_time || 'Не указано'}</p>
                         <p><strong>💰 Цена:</strong> {toFloat(appointment.price)}₽</p>
                         <p><strong>⏱️ Длительность:</strong> {toInt(appointment.duration)} мин</p>
