@@ -1588,25 +1588,26 @@ const Admin = () => {
                 </select>
               </div>
 
-              <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px'}}>
-                <div>
-                  <label style={{display: 'block', marginBottom: '5px', fontWeight: '500'}}>
-                    Дата записи
-                  </label>
-                  <input
-                    type="date"
-                    value={appointmentForm.appointment_date}
-                    onChange={(e) => setAppointmentForm({...appointmentForm, appointment_date: e.target.value})}
-                    style={{
-                      width: '100%',
-                      padding: '10px',
-                      border: '1px solid #D1D5DB',
-                      borderRadius: '4px',
-                      fontSize: '14px'
-                    }}
-                    lang="ru"
-                  />
-                </div>
+              <div>
+  <label style={{display: 'block', marginBottom: '5px', fontWeight: '500'}}>
+    Дата записи
+  </label>
+  <input
+    type="date"
+    value={appointmentForm.appointment_date}
+    onChange={(e) => setAppointmentForm({...appointmentForm, appointment_date: e.target.value})}
+    style={{
+      width: '100%',
+      padding: '10px',
+      border: '1px solid #D1D5DB',
+      borderRadius: '4px',
+      fontSize: '14px'
+    }}
+    // Добавляем атрибуты для русского языка и формата
+    lang="ru"
+    pattern="\d{2}-\d{2}-\d{4}"
+    placeholder="дд-мм-гггг"
+  />
 
                 <div>
                   <label style={{display: 'block', marginBottom: '5px', fontWeight: '500'}}>
