@@ -11,6 +11,9 @@ const Executor = () => {
   const [activeTab, setActiveTab] = useState('appointments');
   const [materialsLoading, setMaterialsLoading] = useState(false);
   
+  // Сортировка заказов (как в админке)
+  const [appointmentsSort, setAppointmentsSort] = useState('date_asc');
+  
   // Для работы с заказами
   const [selectedAppointment, setSelectedAppointment] = useState(null);
   const [showAppointmentModal, setShowAppointmentModal] = useState(false);
@@ -46,6 +49,39 @@ const Executor = () => {
     if (toInt(material.quantity_in_stock) <= toInt(material.min_stock_level)) return 'Критично низкий';
     if (toInt(material.quantity_in_stock) <= toInt(material.min_stock_level) * 1.5) return 'Требует внимания';
     return 'В норме';
+  };
+
+  // Функция для сортировки заказов (как в админке)
+  const getSortedAppointments = () => {
+    const appointmentsCopy = [...appointments];
+    
+    switch (appointmentsSort) {
+      case 'date_asc':
+        // От ближайших к дальним
+        return appointmentsCopy.sort((a, b) => new Date(a.appointment_date) - new Date(b.appointment_date));
+      case 'date_desc':
+        // От дальних к ближайшим
+        return appointmentsCopy.sort((a, b) => new Date(b.appointment_date) - new Date(a.appointment_date));
+      case 'created_asc':
+        // От старых к новым (по дате создания)
+        return appointmentsCopy.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+      case 'created_desc':
+        // От новых к старым (по дате создания)
+        return appointmentsCopy.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+      default:
+        return appointmentsCopy;
+    }
+  };
+
+  // Функция для форматирования даты в российском формате
+  const formatDate = (dateString) => {
+    if (!dateString) return 'Не указана';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('ru-RU', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
   };
 
   useEffect(() => {
@@ -327,6 +363,36 @@ const Executor = () => {
               Мои заказы
             </h2>
           </div>
+
+          {/* Сортировка заказов (как в админке) */}
+          <div style={{
+            background: '#F9FAFB',
+            border: '1px solid #E5E7EB',
+            borderRadius: '8px',
+            padding: '15px',
+            marginBottom: '20px'
+          }}>
+            <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px'}}>
+              <div>
+                <label style={{display: 'block', marginBottom: '5px', fontWeight: '500'}}>Сортировка:</label>
+                <select
+                  value={appointmentsSort}
+                  onChange={(e) => setAppointmentsSort(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '8px',
+                    border: '1px solid #D1D5DB',
+                    borderRadius: '4px'
+                  }}
+                >
+                  <option value="date_asc">📅 Ближайшие даты</option>
+                  <option value="date_desc">📅 Дальние даты</option>
+                  <option value="created_desc">🆕 Сначала новые</option>
+                  <option value="created_asc">🕐 Сначала старые</option>
+                </select>
+              </div>
+            </div>
+          </div>
           
           {appointments.length === 0 ? (
             <div style={{textAlign: 'center', color: '#666', padding: '40px'}}>
@@ -334,7 +400,7 @@ const Executor = () => {
             </div>
           ) : (
             <div style={{display: 'grid', gap: '20px'}}>
-              {appointments.map((appointment) => (
+              {getSortedAppointments().map((appointment) => (
                 <div key={appointment.id} style={{
                   border: '1px solid #E5E7EB',
                   borderRadius: '8px',
@@ -350,7 +416,7 @@ const Executor = () => {
                         Клиент: {appointment.user_name || 'Не указан'}
                       </p>
                       <p style={{color: '#666', marginBottom: '5px'}}>
-                        Дата: {new Date(appointment.appointment_date).toLocaleDateString('ru-RU')} в {appointment.appointment_time}
+                        Дата: {formatDate(appointment.appointment_date)} в {appointment.appointment_time}
                       </p>
                       <p style={{color: '#666'}}>
                         Цена: {appointment.price || 0}₽
@@ -632,7 +698,7 @@ const Executor = () => {
               <p><strong>Клиент:</strong> {appointmentDetails.appointment.user_name}</p>
               <p><strong>Телефон:</strong> {appointmentDetails.appointment.user_phone}</p>
               <p><strong>Email:</strong> {appointmentDetails.appointment.user_email}</p>
-              <p><strong>Дата:</strong> {new Date(appointmentDetails.appointment.appointment_date).toLocaleDateString('ru-RU')}</p>
+              <p><strong>Дата:</strong> {formatDate(appointmentDetails.appointment.appointment_date)}</p>
               <p><strong>Время:</strong> {appointmentDetails.appointment.appointment_time}</p>
               <p><strong>Цена:</strong> {appointmentDetails.appointment.price}₽</p>
             </div>
@@ -742,7 +808,7 @@ const Executor = () => {
             <div style={{marginBottom: '20px', padding: '15px', background: '#F3F4F6', borderRadius: '6px'}}>
               <h4 style={{fontWeight: '600', marginBottom: '5px'}}>Заказ:</h4>
               <p>{selectedAppointment.service_name} - {selectedAppointment.user_name}</p>
-              <p>{new Date(selectedAppointment.appointment_date).toLocaleDateString('ru-RU')} в {selectedAppointment.appointment_time}</p>
+              <p>{formatDate(selectedAppointment.appointment_date)} в {selectedAppointment.appointment_time}</p>
             </div>
 
             <div style={{marginBottom: '20px'}}>
