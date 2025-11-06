@@ -9,6 +9,7 @@ const Executor = () => {
   const [stockAlerts, setStockAlerts] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('appointments');
+  const [materialsLoading, setMaterialsLoading] = useState(false);
   
   // Для работы с заказами
   const [selectedAppointment, setSelectedAppointment] = useState(null);
@@ -20,6 +21,33 @@ const Executor = () => {
   const [materialsToUse, setMaterialsToUse] = useState([]);
   const [usedMaterialsData, setUsedMaterialsData] = useState({}); // Используемые материалы по заказам
 
+  // Функция для надежного преобразования в целое число
+  const toInt = (value) => {
+    if (value === null || value === undefined || value === '') return 0;
+    const num = parseInt(value);
+    return isNaN(num) ? 0 : num;
+  };
+
+  // Функция для надежного преобразования в число с плавающей точкой
+  const toFloat = (value) => {
+    if (value === null || value === undefined || value === '') return 0;
+    const num = parseFloat(value);
+    return isNaN(num) ? 0 : num;
+  };
+
+  // Функции для определения статуса запасов (аналогичные админским)
+  const getStockStatusColor = (material) => {
+    if (toInt(material.quantity_in_stock) <= toInt(material.min_stock_level)) return '#EF4444';
+    if (toInt(material.quantity_in_stock) <= toInt(material.min_stock_level) * 1.5) return '#F59E0B';
+    return '#10B981';
+  };
+
+  const getStockStatusText = (material) => {
+    if (toInt(material.quantity_in_stock) <= toInt(material.min_stock_level)) return 'Критично низкий';
+    if (toInt(material.quantity_in_stock) <= toInt(material.min_stock_level) * 1.5) return 'Требует внимания';
+    return 'В норме';
+  };
+
   useEffect(() => {
     checkExecutorAccess();
   }, []);
@@ -28,7 +56,7 @@ const Executor = () => {
     if (activeTab === 'appointments') {
       fetchAppointments();
     } else if (activeTab === 'materials') {
-      fetchMaterialsAndAlerts();
+      fetchMaterials();
     }
   }, [activeTab]);
 
@@ -71,23 +99,42 @@ const Executor = () => {
     }
   };
 
-  const fetchMaterialsAndAlerts = async () => {
+  const fetchMaterials = async () => {
+    setMaterialsLoading(true);
     try {
       console.log('Начинаем загрузку материалов...');
       
-      const [materialsData, alertsData] = await Promise.all([
-        executorAPI.getMaterials(),
-        executorAPI.getStockAlerts()
-      ]);
+      const data = await executorAPI.getMaterials();
+      console.log('Загружены материалы:', data);
       
-      console.log('Загружены материалы:', materialsData);
-      console.log('Загружены алерты:', alertsData);
+      let materialsData = [];
+      
+      if (Array.isArray(data)) {
+        materialsData = data;
+      } else if (data && Array.isArray(data.materials)) {
+        materialsData = data.materials;
+      } else if (data && data.data && Array.isArray(data.data)) {
+        materialsData = data.data;
+      } else {
+        materialsData = [];
+      }
       
       setMaterials(materialsData);
-      setStockAlerts(alertsData);
+      
+      // Загружаем алерты если нужно
+      try {
+        const alertsData = await executorAPI.getStockAlerts();
+        setStockAlerts(alertsData);
+      } catch (alertError) {
+        console.warn('Не удалось загрузить алерты:', alertError);
+      }
+      
     } catch (error) {
       console.error('Error fetching materials:', error);
       alert('Ошибка загрузки материалов: ' + error.message);
+      setMaterials([]);
+    } finally {
+      setMaterialsLoading(false);
     }
   };
 
@@ -134,7 +181,7 @@ const Executor = () => {
       // Загружаем материалы если они еще не загружены или массив пустой
       if (materials.length === 0) {
         console.log('Материалы не загружены, загружаем...');
-        await fetchMaterialsAndAlerts();
+        await fetchMaterials();
       }
       
       setSelectedAppointment(appointment);
@@ -173,7 +220,7 @@ const Executor = () => {
       await executorAPI.useMaterials(selectedAppointment.id, materialsToUse);
       alert('Материалы успешно использованы');
       setShowMaterialsModal(false);
-      fetchMaterialsAndAlerts();
+      fetchMaterials();
       fetchAppointments(); // Обновляем заказы, чтобы показать использованные материалы
     } catch (error) {
       console.error('Error using materials:', error);
@@ -201,24 +248,6 @@ const Executor = () => {
     }
   };
 
-  const getStockStatusColor = (stockStatus) => {
-    switch (stockStatus) {
-      case 'low': return '#EF4444';
-      case 'warning': return '#F59E0B';
-      case 'ok': return '#10B981';
-      default: return '#6B7280';
-    }
-  };
-
-  const getStockStatusText = (stockStatus) => {
-    switch (stockStatus) {
-      case 'low': return 'Критично';
-      case 'warning': return 'Внимание';
-      case 'ok': return 'В норме';
-      default: return 'Неизвестно';
-    }
-  };
-
   if (loading) {
     return (
       <div className="container py-8 text-center">
@@ -234,7 +263,7 @@ const Executor = () => {
       </h1>
 
       {/* Уведомления о низких запасах */}
-      {stockAlerts && (stockAlerts.alerts.low_stock_count > 0 || stockAlerts.alerts.warning_stock_count > 0) && (
+      {stockAlerts && (stockAlerts.alerts?.low_stock_count > 0 || stockAlerts.alerts?.warning_stock_count > 0) && (
         <div style={{
           background: '#FEF3C7',
           border: '1px solid #F59E0B',
@@ -263,32 +292,34 @@ const Executor = () => {
         <button
           onClick={() => setActiveTab('appointments')}
           style={{
-            padding: '10px 20px',
+            padding: '12px 24px',
             border: 'none',
             background: activeTab === 'appointments' ? '#2563eb' : 'transparent',
             color: activeTab === 'appointments' ? 'white' : '#6B7280',
             cursor: 'pointer',
-            borderBottom: activeTab === 'appointments' ? '2px solid #2563eb' : '2px solid transparent'
+            borderRadius: '8px 8px 0 0',
+            fontWeight: activeTab === 'appointments' ? '600' : 'normal'
           }}
         >
-          Мои заказы ({appointments.length})
+          📅 Мои заказы ({appointments.length})
         </button>
         <button
           onClick={() => setActiveTab('materials')}
           style={{
-            padding: '10px 20px',
+            padding: '12px 24px',
             border: 'none',
             background: activeTab === 'materials' ? '#2563eb' : 'transparent',
             color: activeTab === 'materials' ? 'white' : '#6B7280',
             cursor: 'pointer',
-            borderBottom: activeTab === 'materials' ? '2px solid #2563eb' : '2px solid transparent'
+            borderRadius: '8px 8px 0 0',
+            fontWeight: activeTab === 'materials' ? '600' : 'normal'
           }}
         >
-          Расходные материалы ({materials.length})
+          📦 Склад материалов ({materials.length})
         </button>
       </div>
 
-      {/* Вкладка "Мои заказы" */}
+      {/* ==================== ВКЛАДКА МОИ ЗАКАЗЫ ==================== */}
       {activeTab === 'appointments' && (
         <div>
           <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px'}}>
@@ -487,63 +518,37 @@ const Executor = () => {
         </div>
       )}
 
-      {/* Вкладка "Расходные материалы" */}
+      {/* ==================== ВКЛАДКА СКЛАД МАТЕРИАЛОВ ==================== */}
       {activeTab === 'materials' && (
         <div>
           <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px'}}>
-            <h2 style={{fontSize: '22px', fontWeight: '600'}}>
-              Расходные материалы
-            </h2>
+            <h2 style={{fontSize: '22px', fontWeight: '600'}}>Склад материалов</h2>
           </div>
 
-          {/* Сводка по запасам */}
-          {stockAlerts && (
+          {/* Уведомления о низких запасах (как в админке) */}
+          {materials.some(m => toInt(m.quantity_in_stock) <= toInt(m.min_stock_level)) && (
             <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-              gap: '15px',
-              marginBottom: '30px'
+              background: '#FEF2F2',
+              border: '1px solid #FECACA',
+              borderRadius: '8px',
+              padding: '15px',
+              marginBottom: '20px'
             }}>
-              <div style={{
-                background: '#FEE2E2',
-                border: '1px solid #FECACA',
-                borderRadius: '8px',
-                padding: '15px',
-                textAlign: 'center'
-              }}>
-                <div style={{fontSize: '24px', fontWeight: 'bold', color: '#DC2626'}}>
-                  {stockAlerts.alerts.low_stock_count}
-                </div>
-                <div style={{color: '#7F1D1D', fontSize: '14px'}}>Критически низкий запас</div>
-              </div>
-              <div style={{
-                background: '#FEF3C7',
-                border: '1px solid #FDE68A',
-                borderRadius: '8px',
-                padding: '15px',
-                textAlign: 'center'
-              }}>
-                <div style={{fontSize: '24px', fontWeight: 'bold', color: '#D97706'}}>
-                  {stockAlerts.alerts.warning_stock_count}
-                </div>
-                <div style={{color: '#92400E', fontSize: '14px'}}>Требует внимания</div>
-              </div>
-              <div style={{
-                background: '#D1FAE5',
-                border: '1px solid #A7F3D0',
-                borderRadius: '8px',
-                padding: '15px',
-                textAlign: 'center'
-              }}>
-                <div style={{fontSize: '24px', fontWeight: 'bold', color: '#059669'}}>
-                  {materials.filter(m => m.stock_status === 'ok').length}
-                </div>
-                <div style={{color: '#064E3B', fontSize: '14px'}}>В норме</div>
-              </div>
+              <h3 style={{color: '#DC2626', fontWeight: '600', marginBottom: '10px'}}>
+                ⚠️ Внимание: низкий запас материалов
+              </h3>
+              <p style={{color: '#DC2626'}}>
+                Некоторые материалы имеют критически низкий запас. Сообщите администратору.
+              </p>
             </div>
           )}
 
-          {materials.length === 0 ? (
+          {/* Список материалов */}
+          {materialsLoading ? (
+            <div style={{textAlign: 'center', color: '#666', padding: '40px'}}>
+              Загрузка материалов...
+            </div>
+          ) : materials.length === 0 ? (
             <div style={{textAlign: 'center', color: '#666', padding: '40px'}}>
               Материалы не найдены
             </div>
@@ -558,97 +563,33 @@ const Executor = () => {
                 }}>
                   <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'start'}}>
                     <div style={{flex: 1}}>
-                      <h3 style={{fontSize: '18px', fontWeight: '600', marginBottom: '5px'}}>
+                      <h3 style={{fontSize: '18px', fontWeight: '600', marginBottom: '8px'}}>
                         {material.name}
                       </h3>
                       {material.description && (
-                        <p style={{color: '#666', marginBottom: '10px'}}>
+                        <p style={{color: '#666', marginBottom: '12px'}}>
                           {material.description}
                         </p>
                       )}
-                      <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px', marginTop: '10px'}}>
-                        {/* Остаток на складе - с выделением */}
-                        <div style={{
-                          background: material.stock_status === 'low' ? '#FEE2E2' : material.stock_status === 'warning' ? '#FEF3C7' : '#F0FDF4',
-                          padding: '10px',
-                          borderRadius: '6px',
-                          border: `1px solid ${material.stock_status === 'low' ? '#FECACA' : material.stock_status === 'warning' ? '#FDE68A' : '#BBF7D0'}`
-                        }}>
-                          <div style={{fontSize: '14px', color: '#666', marginBottom: '5px'}}>
-                            Остаток на складе:
-                          </div>
-                          <div style={{
-                            fontSize: '18px', 
-                            fontWeight: 'bold',
-                            color: material.stock_status === 'low' ? '#DC2626' : material.stock_status === 'warning' ? '#D97706' : '#059669'
-                          }}>
-                            {material.quantity_in_stock} {material.unit}
-                          </div>
-                        </div>
-
-                        {/* Минимальный уровень */}
-                        <div style={{
-                          background: '#F9FAFB',
-                          padding: '10px',
-                          borderRadius: '6px',
-                          border: '1px solid #E5E7EB'
-                        }}>
-                          <div style={{fontSize: '14px', color: '#666', marginBottom: '5px'}}>
-                            Минимальный уровень:
-                          </div>
-                          <div style={{fontSize: '16px', fontWeight: '500', color: '#374151'}}>
-                            {material.min_stock_level} {material.unit}
-                          </div>
-                        </div>
-
-                        {/* Цена за единицу */}
-                        {material.price_per_unit > 0 && (
-                          <div style={{
-                            background: '#F9FAFB',
-                            padding: '10px',
-                            borderRadius: '6px',
-                            border: '1px solid #E5E7EB'
-                          }}>
-                            <div style={{fontSize: '14px', color: '#666', marginBottom: '5px'}}>
-                              Цена за единицу:
-                            </div>
-                            <div style={{fontSize: '16px', fontWeight: '500', color: '#374151'}}>
-                              {material.price_per_unit}₽/{material.unit}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Поставщик */}
-                        {material.supplier && (
-                          <div style={{
-                            background: '#F9FAFB',
-                            padding: '10px',
-                            borderRadius: '6px',
-                            border: '1px solid #E5E7EB'
-                          }}>
-                            <div style={{fontSize: '14px', color: '#666', marginBottom: '5px'}}>
-                              Поставщик:
-                            </div>
-                            <div style={{fontSize: '16px', fontWeight: '500', color: '#374151'}}>
-                              {material.supplier}
-                            </div>
-                          </div>
-                        )}
+                      <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '10px', fontSize: '14px'}}>
+                        <p><strong>Остаток:</strong> {toInt(material.quantity_in_stock)} {material.unit}</p>
+                        <p><strong>Мин. уровень:</strong> {toInt(material.min_stock_level)} {material.unit}</p>
+                        <p><strong>Цена:</strong> {toFloat(material.price_per_unit)}₽/{material.unit}</p>
+                        {material.supplier && <p><strong>Поставщик:</strong> {material.supplier}</p>}
                       </div>
                     </div>
-                    
-                    {/* Статус запаса */}
-                    <div style={{
-                      background: getStockStatusColor(material.stock_status),
-                      color: 'white',
-                      padding: '8px 16px',
-                      borderRadius: '20px',
-                      fontSize: '14px',
-                      fontWeight: '600',
-                      whiteSpace: 'nowrap',
-                      marginLeft: '15px'
-                    }}>
-                      {getStockStatusText(material.stock_status)}
+                    <div style={{display: 'flex', flexDirection: 'column', alignItems: 'end', gap: '10px'}}>
+                      <div style={{
+                        background: getStockStatusColor(material),
+                        color: 'white',
+                        padding: '4px 12px',
+                        borderRadius: '12px',
+                        fontSize: '12px',
+                        fontWeight: '500'
+                      }}>
+                        {getStockStatusText(material)}
+                      </div>
+                      {/* У исполнителя убраны все кнопки управления */}
                     </div>
                   </div>
                 </div>
@@ -658,7 +599,7 @@ const Executor = () => {
         </div>
       )}
 
-           {/* Модальное окно для редактирования заказа */}
+      {/* Модальное окно для редактирования заказа */}
       {showAppointmentModal && selectedAppointment && appointmentDetails && (
         <div style={{
           position: 'fixed',
