@@ -1604,6 +1604,7 @@ const Admin = () => {
                       borderRadius: '4px',
                       fontSize: '14px'
                     }}
+                    lang="ru"
                   />
                 </div>
 
